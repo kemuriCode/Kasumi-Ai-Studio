@@ -3,7 +3,7 @@
  * Plugin Name: Kasumi – Full AI Content Generator
  * Description: Automatyzuje generowanie wpisów, komentarzy i grafik przy użyciu OpenAI oraz Google Gemini.
  * Author: Marcin Dymek (KemuriCodes)
- * Version: 0.1.0
+ * Version: 0.1.1
  * Text Domain: kasumi-ai-generator
  *
  * @package Kasumi\AIGenerator
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KASUMI_AI_VERSION', '0.1.0' );
+define( 'KASUMI_AI_VERSION', '0.1.1' );
 define( 'KASUMI_AI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KASUMI_AI_URL', plugin_dir_url( __FILE__ ) );
 define( 'KASUMI_AI_DB_VERSION', '2024112701' );
