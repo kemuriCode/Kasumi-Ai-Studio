@@ -50,6 +50,10 @@ class Scheduler {
 	}
 
 	public function ensure_schedules(): void {
+		if ( ! Options::get( 'plugin_enabled', true ) ) {
+			return;
+		}
+
 		if ( ! wp_next_scheduled( self::POST_HOOK ) ) {
 			$this->schedule_next_post();
 		}
@@ -64,15 +68,27 @@ class Scheduler {
 	}
 
 	public function handle_post_generation(): void {
+		if ( ! Options::get( 'plugin_enabled', true ) ) {
+			return;
+		}
+
 		$this->post_generator->generate();
 		$this->schedule_next_post();
 	}
 
 	public function handle_comment_generation(): void {
+		if ( ! Options::get( 'plugin_enabled', true ) ) {
+			return;
+		}
+
 		$this->comment_generator->process_queue();
 	}
 
 	public function handle_manual_schedules(): void {
+		if ( ! Options::get( 'plugin_enabled', true ) ) {
+			return;
+		}
+
 		$processed = $this->schedule_service->run_due();
 
 		if ( $processed > 0 ) {

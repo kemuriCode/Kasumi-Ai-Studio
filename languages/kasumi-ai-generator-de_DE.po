@@ -940,3 +940,135 @@ msgstr "Abgeschlossen"
 #: src/Admin/SettingsPage.php:1159
 msgid "Błąd"
 msgstr "Fehler"
+
+#: src/Options.php:83
+msgid "Włącz wtyczkę"
+msgstr "Plugin aktivieren"
+
+#: src/Options.php:84
+msgid "Wyłączenie wstrzymuje wszystkie automatyczne zadania (generowanie postów, komentarzy, harmonogramów)."
+msgstr "Deaktivierung hält alle automatischen Aufgaben an (Beitragserstellung, Kommentare, Zeitpläne)."
+
+#: src/Options.php:648
+msgid "Usuń tabele przy deaktywacji"
+msgstr "Tabellen bei Deaktivierung löschen"
+
+#: src/Options.php:653
+msgid "UWAGA: Po deaktywacji wtyczki wszystkie dane harmonogramów zostaną trwale usunięte!"
+msgstr "WARNUNG: Bei Deaktivierung werden alle Zeitplandaten dauerhaft gelöscht!"
+
+#: src/Admin/SettingsPage.php:659
+msgid "Logi wtyczki"
+msgstr "Plugin-Protokolle"
+
+#: src/Admin/SettingsPage.php:1480
+msgid "Wszystkie poziomy"
+msgstr "Alle Ebenen"
+
+#: src/Admin/SettingsPage.php:1481
+msgid "Info"
+msgstr "Info"
+
+#: src/Admin/SettingsPage.php:1482
+msgid "Ostrzeżenia"
+msgstr "Warnungen"
+
+#: src/Admin/SettingsPage.php:1483
+msgid "Błędy"
+msgstr "Fehler"
+
+#: src/Admin/SettingsPage.php:1485
+msgid "Brak logów."
+msgstr "Keine Protokolle."
+
+#: src/Admin/SettingsPage.php:1487
+msgid "Data/Czas"
+msgstr "Datum/Zeit"
+
+#: src/Admin/SettingsPage.php:1488
+msgid "Poziom"
+msgstr "Ebene"
+
+#: src/Admin/SettingsPage.php:1489
+msgid "Wiadomość"
+msgstr "Nachricht"
+
+#: src/Admin/SettingsPage.php:1490
+msgid "Kontekst"
+msgstr "Kontext"
+
+#: src/Admin/SettingsPage.php:1492
+msgid "Pokaż"
+msgstr "Anzeigen"
+
+#: src/Admin/SettingsPage.php:1640
+msgid "Zarządzanie ustawieniami"
+msgstr "Einstellungsverwaltung"
+
+#: src/Admin/SettingsPage.php:1641
+msgid "Eksportuj, importuj lub zresetuj ustawienia wtyczki."
+msgstr "Einstellungen exportieren, importieren oder zurücksetzen."
+
+#: src/Admin/SettingsPage.php:1643
+msgid "Eksportuj ustawienia"
+msgstr "Einstellungen exportieren"
+
+#: src/Admin/SettingsPage.php:1644
+msgid "Importuj ustawienia"
+msgstr "Einstellungen importieren"
+
+#: src/Admin/SettingsPage.php:1645
+msgid "Resetuj do domyślnych"
+msgstr "Auf Standard zurücksetzen"
+
+#: src/Admin/SettingsPage.php:1660
+msgid "Ustawienia zostały wyeksportowane."
+msgstr "Einstellungen wurden exportiert."
+
+#: src/Admin/SettingsPage.php:1662
+msgid "Błąd podczas eksportu ustawień."
+msgstr "Fehler beim Exportieren der Einstellungen."
+
+#: src/Admin/SettingsPage.php:1680
+msgid "Ustawienia zostały zaimportowane."
+msgstr "Einstellungen wurden importiert."
+
+#: src/Admin/SettingsPage.php:1682
+msgid "Błąd podczas importu ustawień."
+msgstr "Fehler beim Importieren der Einstellungen."
+
+#: src/Admin/SettingsPage.php:1700
+msgid "Czy na pewno chcesz zresetować wszystkie ustawienia do domyślnych? Ta operacja jest nieodwracalna."
+msgstr "Möchten Sie wirklich alle Einstellungen auf die Standardwerte zurücksetzen? Dieser Vorgang ist unwiderruflich."
+
+#: src/Admin/SettingsPage.php:1707
+msgid "Ustawienia zostały zresetowane."
+msgstr "Einstellungen wurden zurückgesetzt."
+
+#: src/Admin/SettingsPage.php:1709
+msgid "Błąd podczas resetowania ustawień."
+msgstr "Fehler beim Zurücksetzen der Einstellungen."
+
+#: src/Options.php:178
+msgid "Nieprawidłowy format JSON."
+msgstr "Ungültiges JSON-Format."
+
+#: src/Options.php:185
+msgid "Dane muszą być tablicą."
+msgstr "Daten müssen ein Array sein."
+
+#: src/Options.php:195
+msgid "Ustawienia zostały zaimportowane."
+msgstr "Einstellungen wurden importiert."
+
+#: src/Rest/SettingsController.php:67
+msgid "Brak danych JSON do zaimportowania."
+msgstr "Keine JSON-Daten zum Importieren vorhanden."
+
+#: src/Rest/SettingsController.php:90
+msgid "Nie udało się zresetować ustawień."
+msgstr "Einstellungen konnten nicht zurückgesetzt werden."
+
+#: src/Rest/SettingsController.php:98
+msgid "Ustawienia zostały zresetowane do domyślnych."
+msgstr "Einstellungen wurden auf die Standardwerte zurückgesetzt."

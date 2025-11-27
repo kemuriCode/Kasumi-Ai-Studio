@@ -135,7 +135,7 @@ class SchedulesController {
 		);
 	}
 
-	private function can_manage(): bool {
+	public function can_manage(): bool {
 		return current_user_can( 'edit_posts' );
 	}
 

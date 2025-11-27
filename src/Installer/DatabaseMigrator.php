@@ -50,5 +50,19 @@ final class DatabaseMigrator {
 
 		dbDelta( $sql );
 	}
+
+	/**
+	 * Usuwa tabele wtyczki.
+	 */
+	public static function drop_tables(): void {
+		global $wpdb;
+
+		if ( ! $wpdb instanceof wpdb ) {
+			return;
+		}
+
+		$table = $wpdb->prefix . 'kag_schedules';
+		$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
 }
 

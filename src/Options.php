@@ -80,6 +80,8 @@ final class Options {
 			'status_logging'          => true,
 			'preview_mode'            => false,
 			'debug_email'             => '',
+			'plugin_enabled'          => true,
+			'delete_tables_on_deactivation' => false,
 		);
 	}
 
@@ -155,7 +157,58 @@ final class Options {
 		$sanitized['status_logging'] = ! empty( $values['status_logging'] );
 		$sanitized['preview_mode'] = ! empty( $values['preview_mode'] );
 		$sanitized['debug_email'] = sanitize_text_field( $values['debug_email'] ?? '' );
+		$sanitized['plugin_enabled'] = ! empty( $values['plugin_enabled'] );
+		$sanitized['delete_tables_on_deactivation'] = ! empty( $values['delete_tables_on_deactivation'] );
 
 		return $sanitized;
+	}
+
+	/**
+	 * Eksportuje ustawienia do JSON (bez kluczy API).
+	 *
+	 * @return string JSON string.
+	 */
+	public static function export(): string {
+		$options = self::all();
+		// Usuń klucze API dla bezpieczeństwa
+		unset( $options['openai_api_key'], $options['gemini_api_key'], $options['pixabay_api_key'] );
+
+		return wp_json_encode( $options, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+	}
+
+	/**
+	 * Importuje ustawienia z JSON.
+	 *
+	 * @param string $json JSON string.
+	 * @return array{success: bool, message: string, data?: array}
+	 */
+	public static function import( string $json ): array {
+		$data = json_decode( $json, true );
+
+		if ( json_last_error() !== JSON_ERROR_NONE ) {
+			return array(
+				'success' => false,
+				'message' => __( 'Nieprawidłowy format JSON.', 'kasumi-ai-generator' ),
+			);
+		}
+
+		if ( ! is_array( $data ) ) {
+			return array(
+				'success' => false,
+				'message' => __( 'Dane muszą być tablicą.', 'kasumi-ai-generator' ),
+			);
+		}
+
+		// Sanityzacja przez sanitize()
+		$sanitized = self::sanitize( $data );
+
+		// Zapisz
+		update_option( self::OPTION_NAME, $sanitized );
+
+		return array(
+			'success' => true,
+			'message' => __( 'Ustawienia zostały zaimportowane.', 'kasumi-ai-generator' ),
+			'data'    => $sanitized,
+		);
 	}
 }

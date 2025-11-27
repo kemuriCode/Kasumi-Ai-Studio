@@ -8,7 +8,8 @@
     "openai-php/client": "^0.7",
     "google-gemini-php/client": "^2.7",
     "guzzlehttp/guzzle": "^7.9",
-    "erusev/parsedown": "^1.7"
+    "erusev/parsedown": "^1.7",
+    "twbs/bootstrap-icons": "^1.13"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.5"

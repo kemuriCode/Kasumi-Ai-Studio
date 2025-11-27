@@ -54,10 +54,22 @@ require_once $kasumi_autoload;
 
 use Kasumi\AIGenerator\Installer\DatabaseMigrator;
 use Kasumi\AIGenerator\Module;
+use Kasumi\AIGenerator\Options;
+
 register_activation_hook(
 	__FILE__,
 	static function (): void {
 		DatabaseMigrator::migrate();
+	}
+);
+
+register_deactivation_hook(
+	__FILE__,
+	static function (): void {
+		if ( Options::get( 'delete_tables_on_deactivation', false ) ) {
+			DatabaseMigrator::drop_tables();
+			delete_option( 'kasumi_ai_db_version' );
+		}
 	}
 );
 

@@ -11,6 +11,7 @@ use Kasumi\AIGenerator\Cron\Scheduler;
 use Kasumi\AIGenerator\Installer\DatabaseMigrator;
 use Kasumi\AIGenerator\Log\Logger;
 use Kasumi\AIGenerator\Rest\SchedulesController;
+use Kasumi\AIGenerator\Rest\SettingsController;
 use Kasumi\AIGenerator\Service\AiClient;
 use Kasumi\AIGenerator\Service\BlockContentBuilder;
 use Kasumi\AIGenerator\Service\CommentGenerator;
@@ -38,6 +39,7 @@ final class Module {
 	private ContextResolver $context_resolver;
 	private ScheduleService $schedule_service;
 	private SchedulesController $schedules_controller;
+	private SettingsController $settings_controller;
 
 	public function __construct() {
 		$this->settings_page = new SettingsPage();
@@ -82,16 +84,25 @@ final class Module {
 			$this->schedule_service
 		);
 		$this->schedules_controller = new SchedulesController( $this->schedule_service );
+		$this->settings_controller = new SettingsController();
 	}
 
 	public function register(): void {
+		// Zawsze rejestruj stronę ustawień, aby można było włączyć wtyczkę z powrotem
 		add_action( 'admin_menu', array( $this->settings_page, 'register_menu' ) );
 		add_action( 'admin_init', array( $this->settings_page, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this->settings_page, 'enqueue_assets' ) );
-		$this->scheduler->register();
+
+		// Rejestruj kontrolery, które nie wymagają aktywnej wtyczki
 		$this->preview_controller->register();
 		$this->models_controller->register();
-		$this->schedules_controller->register();
+		$this->settings_controller->register();
+
+		// Rejestruj tylko jeśli wtyczka jest włączona
+		if ( Options::get( 'plugin_enabled', true ) ) {
+			$this->scheduler->register();
+			$this->schedules_controller->register();
+		}
 	}
 
 	private function maybe_run_migrations(): void {

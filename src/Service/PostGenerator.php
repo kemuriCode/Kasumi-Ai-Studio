@@ -245,7 +245,7 @@ class PostGenerator {
 			return $content;
 		}
 
-		$candidates  = $this->get_link_candidates();
+		$candidates  = $this->context_resolver->get_link_candidates();
 		$suggestions = $this->ai_client->suggest_internal_links(
 			array(
 				'title'   => $article['title'] ?? '',

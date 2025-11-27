@@ -945,3 +945,135 @@ msgstr "Completado"
 msgid "Błąd"
 msgstr "Error"
 
+#: src/Options.php:83
+msgid "Włącz wtyczkę"
+msgstr "Activar complemento"
+
+#: src/Options.php:84
+msgid "Wyłączenie wstrzymuje wszystkie automatyczne zadania (generowanie postów, komentarzy, harmonogramów)."
+msgstr "Desactivar suspende todas las tareas automáticas (generación de entradas, comentarios, programaciones)."
+
+#: src/Options.php:648
+msgid "Usuń tabele przy deaktywacji"
+msgstr "Eliminar tablas al desactivar"
+
+#: src/Options.php:653
+msgid "UWAGA: Po deaktywacji wtyczki wszystkie dane harmonogramów zostaną trwale usunięte!"
+msgstr "ADVERTENCIA: Al desactivar el complemento, todos los datos de programación se eliminarán permanentemente."
+
+#: src/Admin/SettingsPage.php:659
+msgid "Logi wtyczki"
+msgstr "Registros del complemento"
+
+#: src/Admin/SettingsPage.php:1480
+msgid "Wszystkie poziomy"
+msgstr "Todos los niveles"
+
+#: src/Admin/SettingsPage.php:1481
+msgid "Info"
+msgstr "Info"
+
+#: src/Admin/SettingsPage.php:1482
+msgid "Ostrzeżenia"
+msgstr "Advertencias"
+
+#: src/Admin/SettingsPage.php:1483
+msgid "Błędy"
+msgstr "Errores"
+
+#: src/Admin/SettingsPage.php:1485
+msgid "Brak logów."
+msgstr "Sin registros."
+
+#: src/Admin/SettingsPage.php:1487
+msgid "Data/Czas"
+msgstr "Fecha/Hora"
+
+#: src/Admin/SettingsPage.php:1488
+msgid "Poziom"
+msgstr "Nivel"
+
+#: src/Admin/SettingsPage.php:1489
+msgid "Wiadomość"
+msgstr "Mensaje"
+
+#: src/Admin/SettingsPage.php:1490
+msgid "Kontekst"
+msgstr "Contexto"
+
+#: src/Admin/SettingsPage.php:1492
+msgid "Pokaż"
+msgstr "Mostrar"
+
+#: src/Admin/SettingsPage.php:1640
+msgid "Zarządzanie ustawieniami"
+msgstr "Gestión de configuración"
+
+#: src/Admin/SettingsPage.php:1641
+msgid "Eksportuj, importuj lub zresetuj ustawienia wtyczki."
+msgstr "Exportar, importar o restablecer la configuración del complemento."
+
+#: src/Admin/SettingsPage.php:1643
+msgid "Eksportuj ustawienia"
+msgstr "Exportar configuración"
+
+#: src/Admin/SettingsPage.php:1644
+msgid "Importuj ustawienia"
+msgstr "Importar configuración"
+
+#: src/Admin/SettingsPage.php:1645
+msgid "Resetuj do domyślnych"
+msgstr "Restablecer a predeterminados"
+
+#: src/Admin/SettingsPage.php:1660
+msgid "Ustawienia zostały wyeksportowane."
+msgstr "La configuración ha sido exportada."
+
+#: src/Admin/SettingsPage.php:1662
+msgid "Błąd podczas eksportu ustawień."
+msgstr "Error al exportar la configuración."
+
+#: src/Admin/SettingsPage.php:1680
+msgid "Ustawienia zostały zaimportowane."
+msgstr "La configuración ha sido importada."
+
+#: src/Admin/SettingsPage.php:1682
+msgid "Błąd podczas importu ustawień."
+msgstr "Error al importar la configuración."
+
+#: src/Admin/SettingsPage.php:1700
+msgid "Czy na pewno chcesz zresetować wszystkie ustawienia do domyślnych? Ta operacja jest nieodwracalna."
+msgstr "¿Estás seguro de que quieres restablecer toda la configuración a los valores predeterminados? Esta operación es irreversible."
+
+#: src/Admin/SettingsPage.php:1707
+msgid "Ustawienia zostały zresetowane."
+msgstr "La configuración ha sido restablecida."
+
+#: src/Admin/SettingsPage.php:1709
+msgid "Błąd podczas resetowania ustawień."
+msgstr "Error al restablecer la configuración."
+
+#: src/Options.php:178
+msgid "Nieprawidłowy format JSON."
+msgstr "Formato JSON no válido."
+
+#: src/Options.php:185
+msgid "Dane muszą być tablicą."
+msgstr "Los datos deben ser un array."
+
+#: src/Options.php:195
+msgid "Ustawienia zostały zaimportowane."
+msgstr "La configuración ha sido importada."
+
+#: src/Rest/SettingsController.php:67
+msgid "Brak danych JSON do zaimportowania."
+msgstr "Faltan datos JSON para importar."
+
+#: src/Rest/SettingsController.php:90
+msgid "Nie udało się zresetować ustawień."
+msgstr "No se pudieron restablecer la configuración."
+
+#: src/Rest/SettingsController.php:98
+msgid "Ustawienia zostały zresetowane do domyślnych."
+msgstr "La configuración ha sido restablecida a los valores predeterminados."
+

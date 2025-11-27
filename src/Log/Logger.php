@@ -9,10 +9,13 @@ use Kasumi\AIGenerator\Options;
 use const FILE_APPEND;
 use const JSON_PRETTY_PRINT;
 use function __;
+use function file_exists;
+use function file_get_contents;
 use function file_put_contents;
 use function get_bloginfo;
 use function gmdate;
 use function is_dir;
+use function preg_match;
 use function sprintf;
 use function strtoupper;
 use function trailingslashit;
@@ -105,5 +108,60 @@ class Logger {
 		}
 
 		wp_mail( $email, $subject, $body );
+	}
+
+	/**
+	 * Pobiera ostatnie wpisy z logów.
+	 *
+	 * @param int $limit Maksymalna liczba wpisów.
+	 * @return array<int, array{date: string, level: string, message: string, context: array}>
+	 */
+	public function get_recent_logs( int $limit = 50 ): array {
+		$uploads = wp_upload_dir();
+		$file_path = trailingslashit( $uploads['basedir'] ) . self::DIRECTORY . '/' . self::FILE_NAME;
+
+		if ( ! file_exists( $file_path ) ) {
+			return array();
+		}
+
+		$content = file_get_contents( $file_path );
+
+		if ( false === $content ) {
+			return array();
+		}
+
+		$lines = explode( PHP_EOL, $content );
+		$lines = array_filter( $lines );
+		$lines = array_reverse( $lines ); // Najnowsze na początku
+		$lines = array_slice( $lines, 0, $limit );
+
+		$logs = array();
+
+		foreach ( $lines as $line ) {
+			// Format: [2024-01-01T12:00:00+00:00][INFO] message {"context": "data"}
+			if ( preg_match( '/^\[([^\]]+)\]\[([^\]]+)\]\s+(.+?)(?:\s+(\{.*\}))?$/', $line, $matches ) ) {
+				$date = $matches[1] ?? '';
+				$level = strtolower( $matches[2] ?? '' );
+				$message = $matches[3] ?? '';
+				$context_json = $matches[4] ?? '{}';
+
+				$context = array();
+				if ( ! empty( $context_json ) ) {
+					$decoded = json_decode( $context_json, true );
+					if ( is_array( $decoded ) ) {
+						$context = $decoded;
+					}
+				}
+
+				$logs[] = array(
+					'date'    => $date,
+					'level'   => $level,
+					'message' => $message,
+					'context' => $context,
+				);
+			}
+		}
+
+		return $logs;
 	}
 }
