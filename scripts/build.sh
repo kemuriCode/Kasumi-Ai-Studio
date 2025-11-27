@@ -44,9 +44,7 @@ rsync -av \
   --exclude='*.swo' \
   --exclude='.DS_Store' \
   --exclude='Thumbs.db' \
-  --exclude='README.md' \
-  --exclude='CHANGELOG.md' \
-  --exclude='RELEASE.md' \
+  --exclude='*.md' \
   "${PLUGIN_DIR}/" "${TEMP_DIR}/${PLUGIN_NAME}/"
 
 echo "📚 Instalacja zależności Composer..."
