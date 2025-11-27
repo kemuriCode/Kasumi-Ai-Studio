@@ -8,8 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Pobierz tagi
-LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+# Pobierz aktualną wersję
 CURRENT_VERSION=$(grep -E "^\s*\*\s*Version:" "${PLUGIN_DIR}/kasumi-ai-generator.php" | sed -E 's/.*Version:\s*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
 
 if [ -z "$CURRENT_VERSION" ]; then
@@ -19,13 +18,31 @@ fi
 
 echo "📝 Generowanie changelog dla wersji $CURRENT_VERSION..."
 
-# Jeśli nie ma tagów, użyj wszystkich commitów
+# Pobierz wszystkie tagi i znajdź poprzedni (nie aktualny)
+ALL_TAGS=($(git tag -l --sort=-version:refname "v*.*.*" 2>/dev/null || echo ""))
+CURRENT_TAG="v${CURRENT_VERSION}"
+
+# Znajdź poprzedni tag (pomiń aktualny jeśli istnieje)
+LAST_TAG=""
+for tag in "${ALL_TAGS[@]}"; do
+    if [ "$tag" != "$CURRENT_TAG" ]; then
+        LAST_TAG="$tag"
+        break
+    fi
+done
+
+# Jeśli nie ma tagów lub tylko aktualny, użyj wszystkich commitów
 if [ -z "$LAST_TAG" ]; then
-    COMMITS=$(git log --pretty=format:"%s" --no-merges)
+    COMMITS=$(git log --pretty=format:"%s" --no-merges 2>/dev/null || echo "")
     echo "⚠️  Brak poprzednich tagów, używam wszystkich commitów"
 else
-    COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s" --no-merges)
-    echo "📌 Zmiany od tagu: $LAST_TAG"
+    COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s" --no-merges 2>/dev/null || echo "")
+    if [ -z "$COMMITS" ]; then
+        echo "⚠️  Brak commitów między ${LAST_TAG} a HEAD, używam ostatnich commitów"
+        COMMITS=$(git log -10 --pretty=format:"%s" --no-merges 2>/dev/null || echo "")
+    else
+        echo "📌 Zmiany od tagu: $LAST_TAG"
+    fi
 fi
 
 # Kategoryzuj commity według Conventional Commits

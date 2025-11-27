@@ -20,6 +20,10 @@ on:
           - minor
           - major
 
+permissions:
+  contents: write
+  pull-requests: read
+
 jobs:
   version:
     name: Bump Version
@@ -99,7 +103,7 @@ jobs:
         id: changelog
         run: |
           chmod +x scripts/generate-changelog.sh
-          CHANGELOG=$(./scripts/generate-changelog.sh)
+          CHANGELOG=$(./scripts/generate-changelog.sh || echo "## [${{ steps.get_version.outputs.version }}] - $(date +%Y-%m-%d)\n\n* Brak zmian w tej wersji")
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -113,6 +117,7 @@ jobs:
         run: |
           chmod +x scripts/build.sh
           ./scripts/build.sh
+          ls -lh kasumi-ai-generator.zip || (echo "❌ Plik ZIP nie został utworzony!" && exit 1)
 
       - name: Create release archive name
         id: archive_name
