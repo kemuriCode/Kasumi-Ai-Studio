@@ -845,10 +845,7 @@ class SettingsPage {
 						</form>
 						<p style="font-weight:600;margin-bottom:12px;"><i class="bi bi-heart-fill" style="color: var(--wp-admin-notification-color);"></i> <?php esc_html_e( 'Dziękuję za każdą kawę!', 'kasumi-ai-generator' ); ?></p>
 						<div class="kasumi-support-card__button">
-							<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="kemuricodes" data-color="#FFDD00" data-emoji="" data-font="Inter" data-text="Postaw mi kawę ;)" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff"></script>
-							<noscript>
-								<a class="button button-primary" href="https://buymeacoffee.com/kemuricodes" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Otwórz Buy Me a Coffee', 'kasumi-ai-generator' ); ?></a>
-							</noscript>
+							<a class="button button-primary" href="https://buymeacoffee.com/kemuricodes" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Postaw mi kawę', 'kasumi-ai-generator' ); ?></a>
 						</div>
 						<p style="margin-top:12px;font-size:12px;color:var(--wp-admin-text-color);opacity:0.8;"><?php esc_html_e( 'Obsługiwane przez buymeacoffee.com', 'kasumi-ai-generator' ); ?></p>
 					</div>
@@ -878,7 +875,6 @@ class SettingsPage {
 					</form>
 				</div>
 			<?php endif; ?>
-			<script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js" data-id="kemuricodes" data-description="Support me on Buy me a coffee!" data-message="Dziękuję za każde wsparcie!!! <3" data-color="#FF813F" data-position="Right" data-x_margin="18" data-y_margin="18"></script>
 
 			<div class="kasumi-overview-grid">
 				<div class="card kasumi-about">

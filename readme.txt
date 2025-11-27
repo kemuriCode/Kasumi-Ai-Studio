@@ -7,7 +7,7 @@ Requires PHP: 8.1
 Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Tags: ai, openai, gemini, content generator, image generator, pixabay, wp-cron, comments
+Tags: ai, openai, gemini, pixabay, wp-cron
 
 Generate SEO-friendly posts, featured images (Imagic+Pixabay) and AI comments using OpenAI & Gemini. Fully automated with WP-Cron.
 
