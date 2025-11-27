@@ -5,6 +5,18 @@ Wszystkie znaczące zmiany w tym projekcie będą udokumentowane w tym pliku.
 Format jest oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/),
 a wersjonowanie używa [Semantic Versioning](https://semver.org/lang/pl/).
 
+## [0.1.3] - 2025-01-XX
+
+### 🔒 Bezpieczeństwo
+- Poprawiono escaping danych wyjściowych zgodnie z wytycznymi WordPress.org:
+  - Zmieniono `$next_run` i `$last_error` na "escape late" (escapowanie podczas wyświetlania zamiast wcześniej)
+  - Wszystkie dane wyjściowe są teraz poprawnie escapowane przed renderowaniem
+
+### ✅ Zgodność z wytycznymi WordPress.org
+- Weryfikacja kompletności escapingu danych wyjściowych
+- Potwierdzenie sanityzacji wszystkich danych wejściowych
+- Weryfikacja użycia nonce dla wszystkich formularzy
+
 ## [0.1.2] - 2025-01-XX
 
 ### 🐛 Poprawki błędów

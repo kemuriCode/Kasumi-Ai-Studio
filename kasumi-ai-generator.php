@@ -4,7 +4,7 @@
  * Plugin URI: https://wordpress.org/plugins/kasumi-full-ai-content-generator
  * Description: Automatyzuje generowanie wpisów, komentarzy i grafik przy użyciu OpenAI oraz Google Gemini.
  * Author: Marcin Dymek (KemuriCodes)
- * Version: 0.1.2
+ * Version: 0.1.3
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: kasumi-full-ai-content-generator
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KASUMI_AI_VERSION', '0.1.2' );
+define( 'KASUMI_AI_VERSION', '0.1.3' );
 define( 'KASUMI_AI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KASUMI_AI_URL', plugin_dir_url( __FILE__ ) );
 define( 'KASUMI_AI_DB_VERSION', '2024112701' );

@@ -4,7 +4,7 @@ Donate link: https://kemuri.codes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: ai, openai, gemini, pixabay, wp-cron
@@ -97,6 +97,10 @@ The Diagnostics tab and admin notices alert you if PHP < 8.1 or extensions like 
 5. Diagnostics tab showing PHP version and required extensions.
 
 == Changelog ==
+
+= 0.1.3 =
+* Poprawiono escaping danych wyjściowych zgodnie z wytycznymi WordPress.org (escape late)
+* Weryfikacja kompletności bezpieczeństwa wtyczki
 
 = 0.1.2 =
 * Naprawiono błędy automatycznego skanowania WordPress.org:

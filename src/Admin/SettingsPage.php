@@ -901,28 +901,26 @@ class SettingsPage {
 					$next_run    = $status['next_post_run']
 						? sprintf(
 							'%s (%s)',
-							esc_html( date_i18n( $date_format, (int) $status['next_post_run'] ) ),
-							esc_html(
-								sprintf(
-									/* translators: %s – relative time */
-									__( 'za %s', 'kasumi-full-ai-content-generator' ),
-									human_time_diff( $now, (int) $status['next_post_run'] )
-								)
+							date_i18n( $date_format, (int) $status['next_post_run'] ),
+							sprintf(
+								/* translators: %s – relative time */
+								__( 'za %s', 'kasumi-full-ai-content-generator' ),
+								human_time_diff( $now, (int) $status['next_post_run'] )
 							)
 						)
-						: esc_html__( 'Brak zaplanowanych zadań', 'kasumi-full-ai-content-generator' );
+						: __( 'Brak zaplanowanych zadań', 'kasumi-full-ai-content-generator' );
 					$last_error  = $status['last_error']
-						? esc_html( $status['last_error'] )
-						: esc_html__( 'Brak błędów', 'kasumi-full-ai-content-generator' );
+						? $status['last_error']
+						: __( 'Brak błędów', 'kasumi-full-ai-content-generator' );
 					?>
 					<div class="card kasumi-ai-status">
 						<h2><i class="bi bi-activity"></i> <?php esc_html_e( 'Status modułu AI', 'kasumi-full-ai-content-generator' ); ?></h2>
 						<ul>
 							<li><i class="bi bi-file-text"></i> <?php esc_html_e( 'Ostatni post ID:', 'kasumi-full-ai-content-generator' ); ?> <strong><?php echo esc_html( (string) ( $status['last_post_id'] ?? '–' ) ); ?></strong></li>
 							<li><i class="bi bi-clock-history"></i> <?php esc_html_e( 'Ostatnie uruchomienie:', 'kasumi-full-ai-content-generator' ); ?> <strong><?php echo $status['last_post_time'] ? esc_html( date_i18n( $date_format, (int) $status['last_post_time'] ) ) : esc_html__( 'Brak', 'kasumi-full-ai-content-generator' ); ?></strong></li>
-							<li><i class="bi bi-calendar-event"></i> <?php esc_html_e( 'Następne zadanie:', 'kasumi-full-ai-content-generator' ); ?> <strong><?php echo $next_run; ?></strong></li>
+							<li><i class="bi bi-calendar-event"></i> <?php esc_html_e( 'Następne zadanie:', 'kasumi-full-ai-content-generator' ); ?> <strong><?php echo esc_html( $next_run ); ?></strong></li>
 							<li><i class="bi bi-chat-dots"></i> <?php esc_html_e( 'Kolejka komentarzy:', 'kasumi-full-ai-content-generator' ); ?> <strong><?php echo esc_html( (string) ( $status['queued_comment_jobs'] ?? 0 ) ); ?></strong></li>
-							<li><i class="bi bi-exclamation-triangle"></i> <?php esc_html_e( 'Ostatni błąd:', 'kasumi-full-ai-content-generator' ); ?> <strong><?php echo $last_error; ?></strong></li>
+							<li><i class="bi bi-exclamation-triangle"></i> <?php esc_html_e( 'Ostatni błąd:', 'kasumi-full-ai-content-generator' ); ?> <strong><?php echo esc_html( $last_error ); ?></strong></li>
 						</ul>
 					</div>
 				<?php endif; ?>
