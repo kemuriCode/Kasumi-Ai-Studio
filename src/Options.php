@@ -17,7 +17,7 @@ use function wp_parse_args;
  */
 final class Options {
 	public const OPTION_NAME = 'kasumi_ai_options';
-	public const OPTION_GROUP = 'kasumi-ai-generator-settings';
+	public const OPTION_GROUP = 'kasumi-full-ai-content-generator-settings';
 
 	/**
 	 * Zwraca pełną tablicę ustawień z domyślnymi wartościami.
@@ -66,9 +66,9 @@ final class Options {
 			'image_generation_mode'   => 'server',
 			'image_remote_provider'   => 'openai',
 			'image_server_engine'     => 'imagick',
-			'image_template'          => __( 'Kasumi AI – {{title}}', 'kasumi-ai-generator' ),
+			'image_template'          => __( 'Kasumi AI – {{title}}', 'kasumi-full-ai-content-generator' ),
 			'image_overlay_color'     => '1b1f3b',
-			'pixabay_query'           => __( 'qr code technology interface', 'kasumi-ai-generator' ),
+			'pixabay_query'           => __( 'qr code technology interface', 'kasumi-full-ai-content-generator' ),
 			'pixabay_orientation'     => 'horizontal',
 			'link_keywords'           => '',
 			'comments_enabled'        => true,
@@ -188,14 +188,14 @@ final class Options {
 		if ( json_last_error() !== JSON_ERROR_NONE ) {
 			return array(
 				'success' => false,
-				'message' => __( 'Nieprawidłowy format JSON.', 'kasumi-ai-generator' ),
+				'message' => __( 'Nieprawidłowy format JSON.', 'kasumi-full-ai-content-generator' ),
 			);
 		}
 
 		if ( ! is_array( $data ) ) {
 			return array(
 				'success' => false,
-				'message' => __( 'Dane muszą być tablicą.', 'kasumi-ai-generator' ),
+				'message' => __( 'Dane muszą być tablicą.', 'kasumi-full-ai-content-generator' ),
 			);
 		}
 
@@ -207,7 +207,7 @@ final class Options {
 
 		return array(
 			'success' => true,
-			'message' => __( 'Ustawienia zostały zaimportowane.', 'kasumi-ai-generator' ),
+			'message' => __( 'Ustawienia zostały zaimportowane.', 'kasumi-full-ai-content-generator' ),
 			'data'    => $sanitized,
 		);
 	}

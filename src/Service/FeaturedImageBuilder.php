@@ -361,20 +361,20 @@ class FeaturedImageBuilder {
 		);
 
 		if ( '' === $title ) {
-			return __( 'Grafika wyróżniająca Kasumi AI', 'kasumi-ai-generator' );
+			return __( 'Grafika wyróżniająca Kasumi AI', 'kasumi-full-ai-content-generator' );
 		}
 
 		if ( '' === $summary ) {
 			return sprintf(
 				/* translators: %s is the post title. */
-				__( '%s – grafika wyróżniająca Kasumi AI', 'kasumi-ai-generator' ),
+				__( '%s – grafika wyróżniająca Kasumi AI', 'kasumi-full-ai-content-generator' ),
 				$title
 			);
 		}
 
 		return sprintf(
 			/* translators: 1: post title, 2: article summary. */
-			__( '%1$s – grafika do artykułu o %2$s', 'kasumi-ai-generator' ),
+			__( '%1$s – grafika do artykułu o %2$s', 'kasumi-full-ai-content-generator' ),
 			$title,
 			lcfirst( $summary )
 		);

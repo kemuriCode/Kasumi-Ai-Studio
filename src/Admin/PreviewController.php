@@ -45,7 +45,7 @@ class PreviewController {
 	public function handle_preview(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error(
-				array( 'message' => __( 'Brak uprawnień.', 'kasumi-ai-generator' ) ),
+				array( 'message' => __( 'Brak uprawnień.', 'kasumi-full-ai-content-generator' ) ),
 				403
 			);
 		}
@@ -68,7 +68,7 @@ class PreviewController {
 
 		if ( empty( $article ) ) {
 			wp_send_json_error(
-				array( 'message' => __( 'Nie udało się wygenerować tekstu podglądu.', 'kasumi-ai-generator' ) )
+				array( 'message' => __( 'Nie udało się wygenerować tekstu podglądu.', 'kasumi-full-ai-content-generator' ) )
 			);
 		}
 
@@ -84,7 +84,7 @@ class PreviewController {
 
 		if ( empty( $article ) ) {
 			wp_send_json_error(
-				array( 'message' => __( 'Brak treści do zbudowania grafiki.', 'kasumi-ai-generator' ) )
+				array( 'message' => __( 'Brak treści do zbudowania grafiki.', 'kasumi-full-ai-content-generator' ) )
 			);
 		}
 
@@ -92,7 +92,7 @@ class PreviewController {
 
 		if ( empty( $image ) ) {
 			wp_send_json_error(
-				array( 'message' => __( 'Nie udało się wygenerować grafiki poglądowej.', 'kasumi-ai-generator' ) )
+				array( 'message' => __( 'Nie udało się wygenerować grafiki poglądowej.', 'kasumi-full-ai-content-generator' ) )
 			);
 		}
 

@@ -24,7 +24,7 @@ class ModelsController {
 
 	public function handle(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Brak uprawnień.', 'kasumi-ai-generator' ) ), 403 );
+			wp_send_json_error( array( 'message' => __( 'Brak uprawnień.', 'kasumi-full-ai-content-generator' ) ), 403 );
 		}
 
 		check_ajax_referer( 'kasumi_ai_models', 'nonce' );
@@ -36,7 +36,7 @@ class ModelsController {
 		if ( empty( $models ) ) {
 			wp_send_json_error(
 				array(
-					'message' => __( 'Brak modeli lub błędny klucz API.', 'kasumi-ai-generator' ),
+					'message' => __( 'Brak modeli lub błędny klucz API.', 'kasumi-full-ai-content-generator' ),
 				)
 			);
 		}

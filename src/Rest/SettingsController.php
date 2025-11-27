@@ -88,7 +88,7 @@ final class SettingsController {
 		if ( empty( $json ) ) {
 			return new WP_Error(
 				'missing_json',
-				__( 'Brak danych JSON do zaimportowania.', 'kasumi-ai-generator' ),
+				__( 'Brak danych JSON do zaimportowania.', 'kasumi-full-ai-content-generator' ),
 				array( 'status' => 400 )
 			);
 		}
@@ -121,7 +121,7 @@ final class SettingsController {
 		if ( ! $deleted ) {
 			return new WP_Error(
 				'reset_failed',
-				__( 'Nie udało się zresetować ustawień.', 'kasumi-ai-generator' ),
+				__( 'Nie udało się zresetować ustawień.', 'kasumi-full-ai-content-generator' ),
 				array( 'status' => 500 )
 			);
 		}
@@ -129,7 +129,7 @@ final class SettingsController {
 		return new WP_REST_Response(
 			array(
 				'success' => true,
-				'message' => __( 'Ustawienia zostały zresetowane do domyślnych.', 'kasumi-ai-generator' ),
+				'message' => __( 'Ustawienia zostały zresetowane do domyślnych.', 'kasumi-full-ai-content-generator' ),
 			),
 			200
 		);

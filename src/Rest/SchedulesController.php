@@ -99,7 +99,7 @@ class SchedulesController {
 		$existing = $this->schedule_service->find( $id );
 
 		if ( ! $existing ) {
-			return new WP_REST_Response( new WP_Error( 'kag_schedule_not_found', __( 'Nie znaleziono zadania.', 'kasumi-ai-generator' ), array( 'status' => 404 ) ) );
+			return new WP_REST_Response( new WP_Error( 'kag_schedule_not_found', __( 'Nie znaleziono zadania.', 'kasumi-full-ai-content-generator' ), array( 'status' => 404 ) ) );
 		}
 
 		$item = $this->schedule_service->update( $id, $this->extract_payload( $request, true ) );
@@ -111,7 +111,7 @@ class SchedulesController {
 		$id = (int) $request['id'];
 
 		if ( ! $this->schedule_service->delete( $id ) ) {
-			return new WP_REST_Response( new WP_Error( 'kag_schedule_not_found', __( 'Nie znaleziono zadania.', 'kasumi-ai-generator' ), array( 'status' => 404 ) ) );
+			return new WP_REST_Response( new WP_Error( 'kag_schedule_not_found', __( 'Nie znaleziono zadania.', 'kasumi-full-ai-content-generator' ), array( 'status' => 404 ) ) );
 		}
 
 		return new WP_REST_Response( array( 'deleted' => true ) );
@@ -122,7 +122,7 @@ class SchedulesController {
 		$existing = $this->schedule_service->find( $id );
 
 		if ( ! $existing ) {
-			return new WP_REST_Response( new WP_Error( 'kag_schedule_not_found', __( 'Nie znaleziono zadania.', 'kasumi-ai-generator' ), array( 'status' => 404 ) ) );
+			return new WP_REST_Response( new WP_Error( 'kag_schedule_not_found', __( 'Nie znaleziono zadania.', 'kasumi-full-ai-content-generator' ), array( 'status' => 404 ) ) );
 		}
 
 		$success = $this->schedule_service->run_now( $id );

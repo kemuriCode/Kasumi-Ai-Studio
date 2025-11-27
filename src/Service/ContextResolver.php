@@ -87,7 +87,7 @@ class ContextResolver {
 		$candidates[] = array(
 			'title'   => get_bloginfo( 'name' ),
 			'url'     => home_url( '/' ),
-			'summary' => __( 'Strona główna Kasumi – generator treści i kodów QR.', 'kasumi-ai-generator' ),
+			'summary' => __( 'Strona główna Kasumi – generator treści i kodów QR.', 'kasumi-full-ai-content-generator' ),
 		);
 
 		return $candidates;

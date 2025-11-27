@@ -1,10 +1,10 @@
-=== AI Content & Image Generator – OpenAI, Gemini, Imagic, Pixabay ===
+=== Kasumi – Full AI Content Generator ===
 Contributors: kemuricodes
 Donate link: https://kemuri.codes
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: ai, openai, gemini, pixabay, wp-cron
@@ -97,6 +97,14 @@ The Diagnostics tab and admin notices alert you if PHP < 8.1 or extensions like 
 5. Diagnostics tab showing PHP version and required extensions.
 
 == Changelog ==
+
+= 0.1.2 =
+* Naprawiono błędy automatycznego skanowania WordPress.org:
+  * Dodano nagłówek License (GPLv2 or later)
+  * Usunięto przestarzałą funkcję load_plugin_textdomain()
+  * Zaktualizowano "Tested up to" do WordPress 6.8
+  * Zmieniono Text Domain na kasumi-full-ai-content-generator zgodnie ze slugiem wtyczki
+  * Ujednolicono nazwę wtyczki w readme.txt
 
 = 0.1.1 =
 * AI-generated markdown now serializes directly to native Gutenberg blocks (paragraph/list/heading/quote/image/code/separator) with graceful `core/html` fallback.
