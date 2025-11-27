@@ -20,7 +20,16 @@ Kasumi – AI Content & Image Generator automates long-form posts, featured imag
 * **AI content engine (OpenAI + Google Gemini)**
 	+ Generate SEO-ready posts with titles, headings, excerpts, meta descriptions and internal-link prompts.
 	+ Multi-language support, custom system/user prompts, and JSON logs for editorial review.
-	+ Works with classic editor, block editor and popular themes/page builders.
+	+ Outputs native Gutenberg blocks (paragraphs, headings, lists, quotes, images) so no “Classic” block conversion is required, while still working with classic editor and page builders.
+= Does it create native Gutenberg blocks? =
+Yes. Markdown returned by the AI is mapped to core blocks (paragraph, heading, list, quote, image, code, separator). If an element is unknown it falls back to a `core/html` block, so everything stays editable. To inspect the block tree you can run:
+
+```
+wp eval 'print_r( parse_blocks( get_post(123)->post_content ) );'
+```
+
+(Replace `123` with the generated post ID.)
+
 * **AI featured images (Imagic + Pixabay)**
 	+ Fetch topic-matched photos via Pixabay and apply consistent branding with Imagic overlays.
 	+ Auto-generate ALT text and titles for accessibility/SEO.
@@ -88,6 +97,10 @@ The Diagnostics tab and admin notices alert you if PHP < 8.1 or extensions like 
 5. Diagnostics tab showing PHP version and required extensions.
 
 == Changelog ==
+
+= 0.1.1 =
+* AI-generated markdown now serializes directly to native Gutenberg blocks (paragraph/list/heading/quote/image/code/separator) with graceful `core/html` fallback.
+* Added WP-CLI snippet in documentation to inspect the generated block tree.
 
 = 0.1.0 =
 * Initial release: OpenAI + Gemini content engine, Imagic + Pixabay featured images, AI comments, WP-Cron automation, diagnostics tab.

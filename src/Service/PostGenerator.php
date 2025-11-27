@@ -11,12 +11,18 @@ use Kasumi\AIGenerator\Status\StatusStore;
 use function __;
 use function array_filter;
 use function array_map;
+use function array_merge;
 use function current_time;
 use function explode;
+use function get_date_from_gmt;
+use function gmdate;
 use function hash;
+use function has_blocks;
+use function is_array;
 use function is_wp_error;
 use function sanitize_title;
 use function sprintf;
+use function strtotime;
 use function time;
 use function trim;
 use function update_post_meta;
@@ -37,17 +43,26 @@ class PostGenerator {
 		private LinkBuilder $link_builder,
 		private CommentGenerator $comment_generator,
 		private ContextResolver $context_resolver,
-		private Logger $logger
+		private Logger $logger,
+		private MarkdownConverter $markdown_converter,
+		private BlockContentBuilder $block_content_builder
 	) {}
 
-	public function generate(): ?int {
-		$context     = $this->context_resolver->get_prompt_context();
-		$user_prompt = $this->build_prompt( $context );
+	/**
+	 * @param array<string, mixed> $overrides
+	 */
+	public function generate( array $overrides = array() ): ?int {
+		$context     = is_array( $overrides['context'] ?? null )
+			? (array) $overrides['context']
+			: $this->context_resolver->get_prompt_context();
+		$user_prompt = $this->resolve_user_prompt( $overrides, $context );
+		$system_prompt = $this->resolve_system_prompt( $overrides );
 
 		$article = $this->ai_client->generate_article(
 			array(
 				'user_prompt'   => $user_prompt,
-				'system_prompt' => Options::get( 'system_prompt' ),
+				'system_prompt' => $system_prompt,
+				'model'         => $overrides['model'] ?? null,
 			)
 		);
 
@@ -57,7 +72,7 @@ class PostGenerator {
 			return null;
 		}
 
-		if ( Options::get( 'preview_mode' ) ) {
+		if ( Options::get( 'preview_mode' ) && empty( $overrides['ignore_preview_mode'] ) ) {
 			$this->logger->info(
 				'Tryb podglądu AI – wygenerowano tekst bez zapisu.',
 				array(
@@ -70,7 +85,7 @@ class PostGenerator {
 
 		$article['content'] = $this->maybe_apply_internal_links( $article );
 
-		$post_id = $this->create_post( $article );
+		$post_id = $this->create_post( $article, $overrides );
 
 		if ( ! $post_id ) {
 			return null;
@@ -92,14 +107,34 @@ class PostGenerator {
 		return $post_id;
 	}
 
+	private function resolve_user_prompt( array $overrides, array $context ): string {
+		$custom = trim( (string) ( $overrides['user_prompt'] ?? '' ) );
+
+		if ( '' !== $custom ) {
+			return $custom;
+		}
+
+		return $this->build_prompt( $context );
+	}
+
+	private function resolve_system_prompt( array $overrides ): string {
+		$custom = trim( (string) ( $overrides['system_prompt'] ?? '' ) );
+
+		return '' !== $custom ? $custom : (string) Options::get( 'system_prompt' );
+	}
+
 	private function build_prompt( array $context ): string {
 		$min  = (int) Options::get( 'word_count_min', 600 );
 		$max  = (int) Options::get( 'word_count_max', 1200 );
 		$goal = Options::get( 'topic_strategy', '' );
 
+		$topic_line = ! empty( $goal ) 
+			? "Strategia tematów: " . $goal . "\n"
+			: "";
+
 		return sprintf(
-			"Strategia tematów: %s\nWymagana liczba słów: %d-%d.\nKontekst kategorii: %s\nOstatnie wpisy: %s\nZwróć poprawny JSON {\"title\",\"slug\",\"excerpt\",\"content\",\"summary\"}.",
-			$goal,
+			"%sWymagana liczba słów: %d-%d.\nKontekst kategorii: %s\nOstatnie wpisy: %s\n\nZwróć poprawny JSON {\"title\",\"slug\",\"excerpt\",\"content\",\"summary\"}.\nPole \"content\" musi być w formacie Markdown - użyj nagłówków (##, ###), list (-, *), pogrubienia (**tekst**), kursywy (*tekst*), linków [tekst](url), cytatów (>). Tekst ma być konkretny na konkretny temat - BEZ żadnych wstawek typu \"Wprowadzenie AI\" czy \"Zakończenie AI\". Zacznij od tematu i rozwiń go naturalnie.",
+			$topic_line,
 			$min,
 			$max,
 			wp_json_encode( $context['categories'], JSON_PRETTY_PRINT ),
@@ -110,18 +145,33 @@ class PostGenerator {
 	/**
 	 * @param array<string, mixed> $article
 	 */
-	private function create_post( array $article ): ?int {
+	private function create_post( array $article, array $overrides = array() ): ?int {
 		$title   = wp_strip_all_tags( (string) ( $article['title'] ?? '' ) );
 		$content = (string) ( $article['content'] ?? '' );
 
+		// Konwertuj Markdown do odpowiedniego formatu
+		$formatted_content = $this->format_content_for_wordpress( $content );
+
+		$post_status = (string) ( $overrides['post_status'] ?? Options::get( 'default_post_status', 'draft' ) );
+
 		$postarr = array(
-			'post_title'   => $title,
-			'post_content' => $content,
-			'post_excerpt' => (string) ( $article['excerpt'] ?? wp_trim_words( wp_strip_all_tags( $content ), 40 ) ),
-			'post_status'  => Options::get( 'default_post_status', 'draft' ),
+			'post_title'   => '' !== trim( (string) ( $overrides['post_title'] ?? '' ) ) ? (string) $overrides['post_title'] : $title,
+			'post_content' => $formatted_content,
+			'post_excerpt' => (string) ( $article['excerpt'] ?? wp_trim_words( wp_strip_all_tags( $this->markdown_converter->to_html( $content ) ), 40 ) ),
+			'post_status'  => $post_status,
 			'post_name'    => sanitize_title( (string) ( $article['slug'] ?? $title ) ),
-			'post_category' => $this->resolve_category(),
+			'post_category' => $this->resolve_category( $overrides ),
+			'post_type'    => (string) ( $overrides['post_type'] ?? 'post' ),
+			'post_author'  => isset( $overrides['author_id'] ) ? (int) $overrides['author_id'] : 0,
 		);
+
+		if ( ! empty( $overrides['publish_at'] ) ) {
+			$postarr = array_merge(
+				$postarr,
+				$this->apply_publish_at( (string) $overrides['publish_at'], $post_status )
+			);
+			$postarr['post_status'] = $post_status;
+		}
 
 		$result = wp_insert_post( $postarr, true );
 
@@ -167,7 +217,11 @@ class PostGenerator {
 		);
 	}
 
-	private function resolve_category(): array {
+	private function resolve_category( array $overrides = array() ): array {
+		if ( ! empty( $overrides['meta']['categoryIds'] ) && is_array( $overrides['meta']['categoryIds'] ) ) {
+			return array_map( 'intval', (array) $overrides['meta']['categoryIds'] );
+		}
+
 		$category = (string) Options::get( 'target_category', '' );
 
 		if ( empty( $category ) ) {
@@ -207,6 +261,44 @@ class PostGenerator {
 		}
 
 		return $this->link_builder->inject_links( $content, $suggestions );
+	}
+
+	private function format_content_for_wordpress( string $markdown_content ): string {
+		if ( empty( trim( $markdown_content ) ) ) {
+			return '';
+		}
+
+		$blocks = $this->block_content_builder->build_blocks( $markdown_content );
+
+		if ( '' !== $blocks ) {
+			return $blocks;
+		}
+
+		$this->logger->warning(
+			'BlockContentBuilder zwrócił pusty wynik – zapisano czysty HTML jako fallback.'
+		);
+
+		return $this->markdown_converter->to_html( $markdown_content );
+	}
+
+	private function apply_publish_at( string $publish_at, string &$status ): array {
+		$timestamp = strtotime( $publish_at );
+
+		if ( ! $timestamp ) {
+			return array();
+		}
+
+		$gmt   = gmdate( 'Y-m-d H:i:s', $timestamp );
+		$local = get_date_from_gmt( $gmt );
+
+		if ( 'publish' === $status && $timestamp > time() ) {
+			$status = 'future';
+		}
+
+		return array(
+			'post_date'     => $local,
+			'post_date_gmt' => $gmt,
+		);
 	}
 
 }

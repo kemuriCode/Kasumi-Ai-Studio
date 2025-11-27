@@ -632,3 +632,109 @@ msgstr ""
 #, php-format
 msgid "%1$s – grafika do artykułu o %2$s"
 msgstr ""
+
+#: src/Admin/SettingsPage.php:673
+msgid "Statystyki"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1020
+msgid "Statystyki użycia API"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1024
+msgid "Wygenerowane posty"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1028
+msgid "Wygenerowane grafiki"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1032
+msgid "Wygenerowane komentarze"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1036
+msgid "Całkowita liczba tokenów"
+msgstr ""
+
+#. translators: %1$s input tokens, %2$s output tokens
+#: src/Admin/SettingsPage.php:1041
+#, php-format
+msgid "Wejście: %s | Wyjście: %s"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1049
+msgid "Szacunkowy koszt"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1051
+msgid "USD (szacunkowo)"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1055
+msgid "Użycie w ciągu ostatnich 30 dni"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1086
+msgid "Tokeny"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1099
+msgid "Użycie tokenów w czasie"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1118
+msgid "Koszt (USD)"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1129
+msgid "Dzienne koszty API"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1149
+msgid "Posty"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1154
+msgid "Grafiki"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1159
+msgid "Komentarze"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:1167
+msgid "Dzienna aktywność"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:432
+msgid "Provider obrazów zdalnych"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:437
+msgid "OpenAI (DALL-E)"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:438
+msgid "Gemini (Imagen)"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:440
+msgid "Używane tylko, gdy wybrano tryb zdalny. Wybierz provider do generowania obrazów przez API."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:424
+msgid "Zdalne (API AI)"
+msgstr ""
+
+#: src/Admin/SettingsPage.php:426
+msgid "W trybie serwerowym obrazy pochodzą z Pixabay i są modyfikowane lokalnie. Tryb zdalny generuje obraz przez API AI (OpenAI lub Gemini)."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:324
+msgid "Wybierz kategorię, która ma otrzymywać nowe treści."
+msgstr ""
+
+#: src/Admin/SettingsPage.php:931
+msgid "— Wybierz kategorię —"
+msgstr ""

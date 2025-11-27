@@ -142,16 +142,17 @@ class FeaturedImageBuilder {
 
 		$image_url = $this->fetch_pixabay_url();
 
+		// Fallback: jeśli brak Pixabay, generuj prostszą grafikę
 		if ( ! $image_url ) {
-			$this->logger->warning( 'Brak zdjęć Pixabay do wygenerowania grafiki.' );
-
-			return null;
+			$this->logger->info( 'Brak klucza Pixabay – generowanie uproszczonej grafiki z tłem.' );
+			return $this->generate_simple_fallback_image( $article, $engine );
 		}
 
 		$binary = $this->download_image( $image_url );
 
 		if ( ! $binary ) {
-			return null;
+			$this->logger->info( 'Nie udało się pobrać obrazu z Pixabay – generowanie uproszczonej grafiki.' );
+			return $this->generate_simple_fallback_image( $article, $engine );
 		}
 
 		return 'gd' === $engine
@@ -411,5 +412,112 @@ class FeaturedImageBuilder {
 			'g' => ( $int >> 8 ) & 255,
 			'b' => $int & 255,
 		);
+	}
+
+	/**
+	 * Generuje prostszą grafikę fallback gdy brak Pixabay.
+	 * 
+	 * @param array<string, mixed> $article
+	 * @param string $engine 'imagick' lub 'gd'
+	 */
+	private function generate_simple_fallback_image( array $article, string $engine ): ?string {
+		$width  = 1200;
+		$height = 630;
+
+		return 'gd' === $engine
+			? $this->generate_simple_gd_image( $article, $width, $height )
+			: $this->generate_simple_imagick_image( $article, $width, $height );
+	}
+
+	/**
+	 * Generuje prostszą grafikę używając GD.
+	 * 
+	 * @param array<string, mixed> $article
+	 */
+	private function generate_simple_gd_image( array $article, int $width, int $height ): ?string {
+		$canvas = imagecreatetruecolor( $width, $height );
+
+		if ( false === $canvas ) {
+			return null;
+		}
+
+		// Gradientowe tło - ciemne do jaśniejszego
+		$color1 = imagecolorallocate( $canvas, 27, 31, 59 ); // #1b1f3b
+		$color2 = imagecolorallocate( $canvas, 42, 48, 80 ); // #2a3050
+		
+		for ( $i = 0; $i < $height; $i++ ) {
+			$ratio = $i / $height;
+			$r = (int) ( 27 + ( 42 - 27 ) * $ratio );
+			$g = (int) ( 31 + ( 48 - 31 ) * $ratio );
+			$b = (int) ( 59 + ( 80 - 59 ) * $ratio );
+			$color = imagecolorallocate( $canvas, $r, $g, $b );
+			imageline( $canvas, 0, $i, $width, $i, $color );
+		}
+
+		// Nakładka na dół
+		$hex = $this->hex_to_rgb( (string) Options::get( 'image_overlay_color', '1b1f3b' ) );
+		$overlay = imagecolorallocatealpha( $canvas, $hex['r'], $hex['g'], $hex['b'], 110 );
+		imagefilledrectangle( $canvas, 0, (int) ( $height * 0.65 ), $width, $height, $overlay );
+
+		// Tekst
+		$caption = $this->build_caption( $article );
+		$lines = explode( "\n", wordwrap( $caption, 40 ) );
+		$lineCount = count( $lines );
+		$startY = max( 40, $height - ( $lineCount * 32 ) - 60 );
+		$white = imagecolorallocate( $canvas, 255, 255, 255 );
+
+		// Użyj większej czcionki (5) i lepszego pozycjonowania
+		foreach ( $lines as $idx => $line ) {
+			imagestring( $canvas, 5, 40, $startY + ( $idx * 32 ), $line, $white );
+		}
+
+		ob_start();
+		if ( function_exists( 'imagewebp' ) ) {
+			imagewebp( $canvas, null, 85 );
+		} else {
+			imagejpeg( $canvas, null, 85 );
+		}
+		$blob = ob_get_clean();
+		imagedestroy( $canvas );
+
+		return $blob ?: null;
+	}
+
+	/**
+	 * Generuje prostszą grafikę używając Imagick.
+	 * 
+	 * @param array<string, mixed> $article
+	 */
+	private function generate_simple_imagick_image( array $article, int $width, int $height ): ?string {
+		try {
+			$imagick = new Imagick();
+			$imagick->newImage( $width, $height, new ImagickPixel( '#1b1f3b' ) );
+			$imagick->setImageFormat( 'webp' );
+
+			// Gradientowe tło
+			$gradient = new Imagick();
+			$gradient->newPseudoImage( $width, $height, "gradient:#1b1f3b-#2a3050" );
+			$imagick->compositeImage( $gradient, Imagick::COMPOSITE_OVER, 0, 0 );
+
+			// Nakładka
+			$this->apply_overlay( $imagick, (string) Options::get( 'image_overlay_color', '1b1f3b' ) );
+
+			// Tekst
+			$this->annotate_caption( $imagick, $article );
+
+			return $imagick->getImageBlob();
+		} catch ( \Throwable $throwable ) {
+			$this->logger->warning(
+				'Nie udało się wygenerować uproszczonej grafiki (Imagick), próba z GD.',
+				array( 'exception' => $throwable->getMessage() )
+			);
+			
+			// Fallback na GD jeśli Imagick nie działa
+			if ( extension_loaded( 'gd' ) ) {
+				return $this->generate_simple_gd_image( $article, $width, $height );
+			}
+		}
+
+		return null;
 	}
 }

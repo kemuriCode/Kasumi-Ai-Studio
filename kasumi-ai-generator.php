@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'KASUMI_AI_VERSION', '0.1.0' );
 define( 'KASUMI_AI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KASUMI_AI_URL', plugin_dir_url( __FILE__ ) );
+define( 'KASUMI_AI_DB_VERSION', '2024112701' );
 
 if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
 	add_action(
@@ -51,7 +52,14 @@ if ( ! file_exists( $kasumi_autoload ) ) {
 
 require_once $kasumi_autoload;
 
+use Kasumi\AIGenerator\Installer\DatabaseMigrator;
 use Kasumi\AIGenerator\Module;
+register_activation_hook(
+	__FILE__,
+	static function (): void {
+		DatabaseMigrator::migrate();
+	}
+);
 
 add_action(
 	'admin_init',
@@ -101,4 +109,46 @@ add_action(
 
 		( new Module() )->register();
 	}
+);
+
+// Dodaj link do ustawień na liście wtyczek
+add_filter(
+	'plugin_action_links_' . plugin_basename( __FILE__ ),
+	static function ( array $links ): array {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return $links;
+		}
+
+		$settings_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( admin_url( 'options-general.php?page=kasumi-ai-generator-ai-content' ) ),
+			esc_html__( 'Ustawienia', 'kasumi-ai-generator' )
+		);
+
+		array_unshift( $links, $settings_link );
+
+		return $links;
+	}
+);
+
+// Dodaj linki w meta informacjach wtyczki (row meta)
+add_filter(
+	'plugin_row_meta',
+	static function ( array $links, string $file ): array {
+		if ( plugin_basename( __FILE__ ) !== $file ) {
+			return $links;
+		}
+
+		$row_meta = array(
+			'coffee' => sprintf(
+				'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+				esc_url( 'https://buymeacoffee.com/kemuricodes' ),
+				esc_html__( 'Postaw kawę', 'kasumi-ai-generator' )
+			),
+		);
+
+		return array_merge( $links, $row_meta );
+	},
+	10,
+	2
 );

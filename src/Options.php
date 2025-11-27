@@ -54,7 +54,7 @@ final class Options {
 			'gemini_model'           => 'gemini-2.0-flash',
 			'pixabay_api_key'         => '',
 			'system_prompt'           => '',
-			'topic_strategy'          => __( 'Twórz wyczerpujące artykuły o QR kodach i zastosowaniach w marketingu.', 'kasumi-ai-generator' ),
+			'topic_strategy'          => '',
 			'target_category'         => '',
 			'default_post_status'     => 'draft',
 			'schedule_interval_hours' => 84,
@@ -64,6 +64,7 @@ final class Options {
 			'enable_logging'          => true,
 			'enable_featured_images'  => true,
 			'image_generation_mode'   => 'server',
+			'image_remote_provider'   => 'openai',
 			'image_server_engine'     => 'imagick',
 			'image_template'          => __( 'Kasumi AI – {{title}}', 'kasumi-ai-generator' ),
 			'image_overlay_color'     => '1b1f3b',
@@ -118,6 +119,8 @@ final class Options {
 		$sanitized['enable_featured_images'] = ! empty( $values['enable_featured_images'] );
 		$image_mode = $values['image_generation_mode'] ?? $defaults['image_generation_mode'];
 		$sanitized['image_generation_mode'] = in_array( $image_mode, array( 'server', 'remote' ), true ) ? $image_mode : $defaults['image_generation_mode'];
+		$image_remote_provider = $values['image_remote_provider'] ?? $defaults['image_remote_provider'];
+		$sanitized['image_remote_provider'] = in_array( $image_remote_provider, array( 'openai', 'gemini' ), true ) ? $image_remote_provider : $defaults['image_remote_provider'];
 		$image_engine = $values['image_server_engine'] ?? $defaults['image_server_engine'];
 		$sanitized['image_server_engine'] = in_array( $image_engine, array( 'imagick', 'gd' ), true ) ? $image_engine : $defaults['image_server_engine'];
 		$sanitized['image_template'] = sanitize_text_field( $values['image_template'] ?? $defaults['image_template'] );

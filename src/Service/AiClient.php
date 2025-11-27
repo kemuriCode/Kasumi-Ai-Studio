@@ -210,9 +210,27 @@ class AiClient {
 	}
 
 	private function default_system_prompt(): string {
+		$custom = Options::get( 'system_prompt', '' );
+
+		if ( ! empty( $custom ) ) {
+			return $custom;
+		}
+
 		$base_prompt = Options::get( 'topic_strategy', '' );
 
-		return $base_prompt ?: 'Jesteś ekspertem ds. QR kodów i marketingu cyfrowego. Pisz precyzyjne, wiarygodne i przyjazne artykuły.';
+		// Jeśli użytkownik nie podał nic, używamy tylko zabezpieczenia
+		$default = '';
+		
+		if ( ! empty( $base_prompt ) ) {
+			$default = $base_prompt;
+		}
+
+		// Zabezpieczenie przed wstawkami AI - WAŻNE!
+		$security_note = "WAŻNE: Piszesz konkretny tekst na konkretny temat. NIGDY nie dodawaj wstawek typu \"Wprowadzenie AI\", \"Zakończenie AI\", \"Wygenerowano przez AI\", \"Ten tekst został stworzony przez...\" ani żadnych innych wzmianek o tym, że treść została wygenerowana. Tekst ma wyglądać jak napisany przez człowieka eksperta. Zacznij od tematu, rozwiń go, zakończ naturalnie - bez żadnych meta-informacji o procesie generowania. Formatuj treść w Markdown.";
+
+		return ! empty( $default ) 
+			? $default . "\n\n" . $security_note
+			: $security_note;
 	}
 
 	private function generate_comment_with_openai( array $context ): ?string {
@@ -516,6 +534,19 @@ class AiClient {
 	 * @param array<string, mixed> $article
 	 */
 	public function generate_remote_image( array $article ): ?string {
+		$provider = Options::get( 'image_remote_provider', 'openai' );
+
+		if ( 'gemini' === $provider ) {
+			return $this->generate_image_with_gemini( $article );
+		}
+
+		return $this->generate_image_with_openai( $article );
+	}
+
+	/**
+	 * @param array<string, mixed> $article
+	 */
+	private function generate_image_with_openai( array $article ): ?string {
 		$client = $this->get_openai_client();
 
 		if ( null === $client ) {
@@ -549,6 +580,58 @@ class AiClient {
 		} catch ( \Throwable $throwable ) {
 			$this->logger->warning(
 				'Nie udało się wygenerować grafiki przez OpenAI Images API.',
+				array( 'exception' => $throwable->getMessage() )
+			);
+		}
+
+		return null;
+	}
+
+	/**
+	 * @param array<string, mixed> $article
+	 */
+	private function generate_image_with_gemini( array $article ): ?string {
+		$client = $this->get_gemini_client();
+
+		if ( null === $client ) {
+			return null;
+		}
+
+		$prompt = sprintf(
+			"Create a clean featured image for a blog post.\nTitle: %s\nSummary: %s\nKeywords: %s\nStyle: modern, flat colors, easy to read text overlay.",
+			(string) ( $article['title'] ?? '' ),
+			wp_json_encode(
+				array(
+					'summary' => $article['summary'] ?? $article['excerpt'] ?? '',
+				),
+				JSON_PRETTY_PRINT
+			),
+			(string) Options::get( 'pixabay_query', 'qr code marketing' )
+		);
+
+		try {
+			// ImageConfig dla obrazu 16:9 (1200x675) - standard dla featured images
+			$image_config = new \Gemini\Data\ImageConfig( aspectRatio: '16:9' );
+			$generation_config = new \Gemini\Data\GenerationConfig( imageConfig: $image_config );
+			
+			$model = $client->generativeModel( model: 'gemini-2.5-flash-image' )
+				->withGenerationConfig( $generation_config );
+			
+			$response = $model->generateContent( $prompt );
+
+			$parts = $response->candidates()[0]->content()->parts ?? array();
+			
+			foreach ( $parts as $part ) {
+				if ( isset( $part->inlineData ) && isset( $part->inlineData->data ) ) {
+					$base64 = $part->inlineData->data;
+					return base64_decode( $base64 );
+				}
+			}
+
+			return null;
+		} catch ( \Throwable $throwable ) {
+			$this->logger->warning(
+				'Nie udało się wygenerować grafiki przez Gemini Imagen API.',
 				array( 'exception' => $throwable->getMessage() )
 			);
 		}

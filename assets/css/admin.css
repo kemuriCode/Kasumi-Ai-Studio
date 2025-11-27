@@ -16,8 +16,124 @@
 	min-height: 60px;
 }
 
+/* Zakładki - nowoczesny styl WordPress */
+.kasumi-ai-tabs {
+	margin-top: 20px;
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.kasumi-ai-tabs > ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	border-bottom: 1px solid #c3c4c7;
+	background: #f6f7f7;
+	border-radius: 4px 4px 0 0;
+}
+
+.kasumi-ai-tabs > ul li {
+	margin: 0;
+}
+
+.kasumi-ai-tabs > ul li a {
+	display: block;
+	padding: 12px 20px;
+	font-size: 14px;
+	line-height: 1.5;
+	font-weight: 500;
+	color: #50575e;
+	text-decoration: none;
+	border: none;
+	border-bottom: 3px solid transparent;
+	background: transparent;
+	transition: all 0.15s ease-in-out;
+	position: relative;
+}
+
+.kasumi-ai-tabs > ul li a:hover,
+.kasumi-ai-tabs > ul li a:focus {
+	color: #2271b1;
+	background: #fff;
+	border-bottom-color: #c3c4c7;
+	outline: none;
+	box-shadow: none;
+}
+
+.kasumi-ai-tabs > ul li.ui-state-active a,
+.kasumi-ai-tabs > ul li.ui-tabs-active a {
+	color: #2271b1;
+	font-weight: 600;
+	background: #fff;
+	border-bottom-color: #2271b1;
+	margin-bottom: -1px;
+}
+
 .kasumi-ai-tabs .kasumi-tab-panel {
-	margin-top: 16px;
+	margin: 0;
+	padding: 24px;
+	background: #fff;
+	border-radius: 0 0 4px 4px;
+	min-height: 400px;
+}
+
+/* Ukryj domyślne style jQuery UI dla zakładek */
+.kasumi-ai-tabs .ui-tabs-hide {
+	display: none !important;
+}
+
+.kasumi-ai-tabs .ui-tabs-nav .ui-tabs-disabled {
+	display: none;
+}
+
+/* Upewnij się, że zakładki są czytelne */
+.kasumi-ai-tabs > ul li.ui-state-active,
+.kasumi-ai-tabs > ul li.ui-tabs-active {
+	margin-bottom: 0;
+}
+
+/* Lepszy spacing dla formularza w zakładkach */
+.kasumi-ai-tabs .kasumi-tab-panel .form-table {
+	margin-top: 0;
+}
+
+.kasumi-ai-tabs .kasumi-tab-panel .form-table th {
+	padding: 16px 10px 16px 0;
+	font-weight: 500;
+	width: 200px;
+}
+
+.kasumi-ai-tabs .kasumi-tab-panel .form-table td {
+	padding: 16px 10px;
+}
+
+/* Responsywność dla zakładek */
+@media (max-width: 782px) {
+	.kasumi-ai-tabs > ul {
+		flex-direction: column;
+	}
+
+	.kasumi-ai-tabs > ul li a {
+		border-bottom: 1px solid #c3c4c7;
+		border-left: 3px solid transparent;
+		border-right: none;
+		padding: 10px 16px;
+	}
+
+	.kasumi-ai-tabs > ul li a:hover,
+	.kasumi-ai-tabs > ul li.ui-state-active a,
+	.kasumi-ai-tabs > ul li.ui-tabs-active a {
+		border-left-color: #2271b1;
+		border-bottom-color: #c3c4c7;
+	}
+
+	.kasumi-ai-tabs .kasumi-tab-panel {
+		padding: 16px;
+	}
 }
 
 .kasumi-help {
@@ -61,21 +177,62 @@
 	border-radius: 14px;
 	background: #fffef7;
 	box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+	position: relative;
+	overflow: hidden;
 }
 
 .kasumi-support-card__text {
 	flex: 1 1 320px;
+	min-width: 240px;
 }
 
 .kasumi-support-card__actions {
-	flex: 0 0 260px;
+	flex: 0 1 320px;
 	min-width: 220px;
+	width: 100%;
 	align-self: center;
 	text-align: center;
 	border: 1px dashed rgba(0, 0, 0, 0.1);
 	border-radius: 12px;
-	padding: 16px 12px 20px;
+	padding: 16px 16px 20px;
 	background: #fff;
+	position: relative;
+}
+
+.kasumi-support-card__button {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: visible;
+	padding: 0 4px;
+}
+
+.kasumi-support-card__button > *,
+.kasumi-support-card__button .bmc-button,
+.kasumi-support-card__button iframe,
+.kasumi-support-card__button a {
+	max-width: 100%;
+	width: 100% !important;
+}
+
+.kasumi-support-card__dismiss {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+}
+
+.kasumi-support-reminder {
+	margin: 16px 0 24px;
+	padding: 16px 20px;
+	border: 1px solid #e5e7eb;
+	border-radius: 10px;
+	background: #fbfbfb;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: center;
+	justify-content: space-between;
 }
 
 @media (max-width: 782px) {
@@ -85,6 +242,11 @@
 
 	.kasumi-support-card__actions {
 		width: 100%;
+	}
+
+	.kasumi-support-card__dismiss {
+		position: static;
+		align-self: flex-end;
 	}
 }
 
@@ -133,4 +295,156 @@
 .kasumi-diag-list .kasumi-error {
 	color: #b52727;
 	font-weight: 600;
+}
+
+/* --- Planowanie wpisów --- */
+.kasumi-schedule-panel {
+	margin-top: 32px;
+	border: 1px solid #e4e7ec;
+	border-radius: 16px;
+	padding: 28px;
+	background: #fff;
+	box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
+}
+
+.kasumi-schedule-panel h3 {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 600;
+}
+
+.kasumi-schedule-grid {
+	margin-top: 20px;
+	display: grid;
+	grid-template-columns: minmax(480px, 600px) minmax(300px, 1fr);
+	gap: 32px;
+	align-items: flex-start;
+}
+
+.kasumi-schedule-column {
+	background: #fdfdff;
+	border: 1px solid #e7e9f3;
+	border-radius: 14px;
+	padding: 22px;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.kasumi-schedule-column--list {
+	background: #fff;
+	overflow: hidden;
+}
+
+.kasumi-field,
+.kasumi-field-group > div {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 12px;
+}
+
+.kasumi-field-group {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	gap: 16px;
+}
+
+.kasumi-field-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 16px;
+}
+
+.kasumi-field label {
+	font-weight: 500;
+	color: #1f2937;
+}
+
+.kasumi-field input,
+.kasumi-field select,
+.kasumi-field textarea {
+	width: 100%;
+}
+
+.kasumi-schedule-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	align-items: flex-end;
+}
+
+.kasumi-schedule-toolbar label {
+	display: flex;
+	flex-direction: column;
+	font-size: 12px;
+	font-weight: 600;
+	color: #4b5563;
+	min-width: 140px;
+}
+
+.kasumi-search-field {
+	flex: 1 1 200px;
+}
+
+.kasumi-schedule-table {
+	border: 1px solid #e0e6ef;
+	border-radius: 14px;
+	background: #fff;
+	padding: 0;
+	min-height: 200px;
+	overflow-x: auto;
+	box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.kasumi-schedule-table table {
+	margin: 0;
+}
+
+.kasumi-table-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.kasumi-field .components-base-control__help {
+	margin-top: -6px;
+}
+
+.kasumi-actions {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+
+@media (max-width: 1080px) {
+	.kasumi-schedule-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 782px) {
+	.kasumi-schedule-panel {
+		padding: 18px;
+	}
+
+	.kasumi-schedule-column {
+		padding: 18px;
+	}
+
+	.kasumi-schedule-toolbar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.kasumi-schedule-toolbar label {
+		min-width: 100%;
+	}
+
+	.kasumi-actions {
+		flex-direction: column;
+	}
+
+	.kasumi-table-actions {
+		flex-direction: column;
+	}
 }

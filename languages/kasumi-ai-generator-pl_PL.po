@@ -21,3 +21,313 @@ msgstr "Treści AI"
 #: src/Admin/SettingsPage.php:608
 msgid "Otwórz Buy Me a Coffee"
 msgstr "Otwórz Buy Me a Coffee"
+
+#: src/Admin/SettingsPage.php:673
+msgid "Statystyki"
+msgstr "Statystyki"
+
+#: src/Admin/SettingsPage.php:1020
+msgid "Statystyki użycia API"
+msgstr "Statystyki użycia API"
+
+#: src/Admin/SettingsPage.php:1024
+msgid "Wygenerowane posty"
+msgstr "Wygenerowane posty"
+
+#: src/Admin/SettingsPage.php:1028
+msgid "Wygenerowane grafiki"
+msgstr "Wygenerowane grafiki"
+
+#: src/Admin/SettingsPage.php:1032
+msgid "Wygenerowane komentarze"
+msgstr "Wygenerowane komentarze"
+
+#: src/Admin/SettingsPage.php:1036
+msgid "Całkowita liczba tokenów"
+msgstr "Całkowita liczba tokenów"
+
+#. translators: %1$s input tokens, %2$s output tokens
+#: src/Admin/SettingsPage.php:1041
+#, php-format
+msgid "Wejście: %s | Wyjście: %s"
+msgstr "Wejście: %s | Wyjście: %s"
+
+#: src/Admin/SettingsPage.php:1049
+msgid "Szacunkowy koszt"
+msgstr "Szacunkowy koszt"
+
+#: src/Admin/SettingsPage.php:1051
+msgid "USD (szacunkowo)"
+msgstr "USD (szacunkowo)"
+
+#: src/Admin/SettingsPage.php:1055
+msgid "Użycie w ciągu ostatnich 30 dni"
+msgstr "Użycie w ciągu ostatnich 30 dni"
+
+#: src/Admin/SettingsPage.php:1086
+msgid "Tokeny"
+msgstr "Tokeny"
+
+#: src/Admin/SettingsPage.php:1099
+msgid "Użycie tokenów w czasie"
+msgstr "Użycie tokenów w czasie"
+
+#: src/Admin/SettingsPage.php:1118
+msgid "Koszt (USD)"
+msgstr "Koszt (USD)"
+
+#: src/Admin/SettingsPage.php:1129
+msgid "Dzienne koszty API"
+msgstr "Dzienne koszty API"
+
+#: src/Admin/SettingsPage.php:1149
+msgid "Posty"
+msgstr "Posty"
+
+#: src/Admin/SettingsPage.php:1154
+msgid "Grafiki"
+msgstr "Grafiki"
+
+#: src/Admin/SettingsPage.php:1159
+msgid "Komentarze"
+msgstr "Komentarze"
+
+#: src/Admin/SettingsPage.php:1167
+msgid "Dzienna aktywność"
+msgstr "Dzienna aktywność"
+
+#: src/Admin/SettingsPage.php:432
+msgid "Provider obrazów zdalnych"
+msgstr "Provider obrazów zdalnych"
+
+#: src/Admin/SettingsPage.php:437
+msgid "OpenAI (DALL-E)"
+msgstr "OpenAI (DALL-E)"
+
+#: src/Admin/SettingsPage.php:438
+msgid "Gemini (Imagen)"
+msgstr "Gemini (Imagen)"
+
+#: src/Admin/SettingsPage.php:440
+msgid "Używane tylko, gdy wybrano tryb zdalny. Wybierz provider do generowania obrazów przez API."
+msgstr "Używane tylko, gdy wybrano tryb zdalny. Wybierz provider do generowania obrazów przez API."
+
+#: src/Admin/SettingsPage.php:424
+msgid "Zdalne (API AI)"
+msgstr "Zdalne (API AI)"
+
+#: src/Admin/SettingsPage.php:426
+msgid "W trybie serwerowym obrazy pochodzą z Pixabay i są modyfikowane lokalnie. Tryb zdalny generuje obraz przez API AI (OpenAI lub Gemini)."
+msgstr "W trybie serwerowym obrazy pochodzą z Pixabay i są modyfikowane lokalnie. Tryb zdalny generuje obraz przez API AI (OpenAI lub Gemini)."
+
+#: src/Admin/SettingsPage.php:324
+msgid "Wybierz kategorię, która ma otrzymywać nowe treści."
+msgstr "Wybierz kategorię, która ma otrzymywać nowe treści."
+
+#: src/Admin/SettingsPage.php:931
+msgid "— Wybierz kategorię —"
+msgstr "— Wybierz kategorię —"
+
+#: src/Admin/SettingsPage.php:1036
+msgid "Planowanie wpisów i harmonogram"
+msgstr "Planowanie wpisów i harmonogram"
+
+#: src/Admin/SettingsPage.php:1037
+msgid "Twórz własne zadania – wybierz autora, typ wpisu, status i dokładną datę publikacji. Kasumi wygeneruje treść w wybranym momencie."
+msgstr "Twórz własne zadania – wybierz autora, typ wpisu, status i dokładną datę publikacji. Kasumi wygeneruje treść w wybranym momencie."
+
+#: src/Admin/SettingsPage.php:1043
+msgid "Tytuł roboczy"
+msgstr "Tytuł roboczy"
+
+#: src/Admin/SettingsPage.php:1044
+msgid "np. Strategie QR kodów na eventach"
+msgstr "np. Strategie QR kodów na eventach"
+
+#: src/Admin/SettingsPage.php:1047
+msgid "Status zadania"
+msgstr "Status zadania"
+
+#: src/Admin/SettingsPage.php:1049
+msgid "Szkic (bez daty)"
+msgstr "Szkic (bez daty)"
+
+#: src/Admin/SettingsPage.php:1050
+msgid "Zaplanowane"
+msgstr "Zaplanowane"
+
+#: src/Admin/SettingsPage.php:1055
+msgid "Typ wpisu"
+msgstr "Typ wpisu"
+
+#: src/Admin/SettingsPage.php:1059
+msgid "Status WordPress"
+msgstr "Status WordPress"
+
+#: src/Admin/SettingsPage.php:1061
+msgid "Szkic"
+msgstr "Szkic"
+
+#: src/Admin/SettingsPage.php:1062
+msgid "Publikuj automatycznie"
+msgstr "Publikuj automatycznie"
+
+#: src/Admin/SettingsPage.php:1067
+msgid "Autor wpisu"
+msgstr "Autor wpisu"
+
+#: src/Admin/SettingsPage.php:1068
+msgid "— Wybierz autora —"
+msgstr "— Wybierz autora —"
+
+#: src/Admin/SettingsPage.php:1071
+msgid "Data publikacji"
+msgstr "Data publikacji"
+
+#: src/Admin/SettingsPage.php:1073
+msgid "Wymagane, gdy status ustawisz na „Zaplanowane". Czas zostanie zapisany w strefie WordPress."
+msgstr "Wymagane, gdy status ustawisz na „Zaplanowane". Czas zostanie zapisany w strefie WordPress."
+
+#: src/Admin/SettingsPage.php:1076
+msgid "Model AI (opcjonalnie)"
+msgstr "Model AI (opcjonalnie)"
+
+#: src/Admin/SettingsPage.php:1077
+msgid "Auto (globalny)"
+msgstr "Auto (globalny)"
+
+#: src/Admin/SettingsPage.php:1080
+msgid "System prompt (opcjonalnie)"
+msgstr "System prompt (opcjonalnie)"
+
+#: src/Admin/SettingsPage.php:1081
+msgid "Pozostaw pusty aby użyć globalnego ustawienia."
+msgstr "Pozostaw pusty aby użyć globalnego ustawienia."
+
+#: src/Admin/SettingsPage.php:1084
+msgid "Polecenie dla AI"
+msgstr "Polecenie dla AI"
+
+#: src/Admin/SettingsPage.php:1085
+msgid "Opisz temat, słowa kluczowe, ton wypowiedzi itd."
+msgstr "Opisz temat, słowa kluczowe, ton wypowiedzi itd."
+
+#: src/Admin/SettingsPage.php:1088
+msgid "Zapisz zadanie"
+msgstr "Zapisz zadanie"
+
+#: src/Admin/SettingsPage.php:1089
+msgid "Wyczyść formularz"
+msgstr "Wyczyść formularz"
+
+#: src/Admin/SettingsPage.php:1096
+msgid "Status"
+msgstr "Status"
+
+#: src/Admin/SettingsPage.php:1098
+msgid "Wszystkie"
+msgstr "Wszystkie"
+
+#: src/Admin/SettingsPage.php:1099
+msgid "Szkice"
+msgstr "Szkice"
+
+#: src/Admin/SettingsPage.php:1101
+msgid "W trakcie"
+msgstr "W trakcie"
+
+#: src/Admin/SettingsPage.php:1102
+msgid "Wykonane"
+msgstr "Wykonane"
+
+#: src/Admin/SettingsPage.php:1103
+msgid "Błędy"
+msgstr "Błędy"
+
+#: src/Admin/SettingsPage.php:1107
+msgid "Autor"
+msgstr "Autor"
+
+#: src/Admin/SettingsPage.php:1108
+msgid "Wszyscy"
+msgstr "Wszyscy"
+
+#: src/Admin/SettingsPage.php:1113
+msgid "Szukaj"
+msgstr "Szukaj"
+
+#: src/Admin/SettingsPage.php:1114
+msgid "Szukaj po tytule/poleceniu…"
+msgstr "Szukaj po tytule/poleceniu…"
+
+#: src/Admin/SettingsPage.php:1116
+msgid "Odśwież"
+msgstr "Odśwież"
+
+#: src/Admin/SettingsPage.php:1119
+msgid "Brak zadań w kolejce."
+msgstr "Brak zadań w kolejce."
+
+#: src/Admin/SettingsPage.php:1142
+msgid "Zapisano zadanie."
+msgstr "Zapisano zadanie."
+
+#: src/Admin/SettingsPage.php:1143
+msgid "Zaktualizowano zadanie."
+msgstr "Zaktualizowano zadanie."
+
+#: src/Admin/SettingsPage.php:1144
+msgid "Usunięto zadanie."
+msgstr "Usunięto zadanie."
+
+#: src/Admin/SettingsPage.php:1145
+msgid "Uruchomiono generowanie."
+msgstr "Uruchomiono generowanie."
+
+#: src/Admin/SettingsPage.php:1146
+msgid "Coś poszło nie tak. Sprawdź logi i spróbuj ponownie."
+msgstr "Coś poszło nie tak. Sprawdź logi i spróbuj ponownie."
+
+#: src/Admin/SettingsPage.php:1147
+msgid "Wczytywanie…"
+msgstr "Wczytywanie…"
+
+#: src/Admin/SettingsPage.php:1148
+msgid "Brak zaplanowanych zadań."
+msgstr "Brak zaplanowanych zadań."
+
+#: src/Admin/SettingsPage.php:1149
+msgid "Brak daty"
+msgstr "Brak daty"
+
+#: src/Admin/SettingsPage.php:1150
+msgid "Czy na pewno usunąć to zadanie?"
+msgstr "Czy na pewno usunąć to zadanie?"
+
+#: src/Admin/SettingsPage.php:1151
+msgid "Edytuj"
+msgstr "Edytuj"
+
+#: src/Admin/SettingsPage.php:1152
+msgid "Uruchom teraz"
+msgstr "Uruchom teraz"
+
+#: src/Admin/SettingsPage.php:1153
+msgid "Usuń"
+msgstr "Usuń"
+
+#: src/Admin/SettingsPage.php:1154
+msgid "Zadanie"
+msgstr "Zadanie"
+
+#: src/Admin/SettingsPage.php:1155
+msgid "Publikacja"
+msgstr "Publikacja"
+
+#: src/Admin/SettingsPage.php:1158
+msgid "Zakończone"
+msgstr "Zakończone"
+
+#: src/Admin/SettingsPage.php:1159
+msgid "Błąd"
+msgstr "Błąd"
