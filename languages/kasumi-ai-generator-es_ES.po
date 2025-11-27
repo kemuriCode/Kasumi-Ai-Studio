@@ -741,3 +741,207 @@ msgstr "Selecciona la categoría que debe recibir nuevo contenido."
 msgid "— Wybierz kategorię —"
 msgstr "— Seleccionar Categoría —"
 
+#: src/Admin/SettingsPage.php:1036
+msgid "Planowanie wpisów i harmonogram"
+msgstr "Planificación de entradas y programación"
+
+#: src/Admin/SettingsPage.php:1037
+msgid "Twórz własne zadania – wybierz autora, typ wpisu, status i dokładną datę publikacji. Kasumi wygeneruje treść w wybranym momencie."
+msgstr "Crea tus propias tareas – elige autor, tipo de entrada, estado y fecha exacta de publicación. Kasumi generará el contenido en el momento seleccionado."
+
+#: src/Admin/SettingsPage.php:1043
+msgid "Tytuł roboczy"
+msgstr "Título de trabajo"
+
+#: src/Admin/SettingsPage.php:1044
+msgid "np. Strategie QR kodów na eventach"
+msgstr "ej. Estrategias de códigos QR para eventos"
+
+#: src/Admin/SettingsPage.php:1047
+msgid "Status zadania"
+msgstr "Estado de la tarea"
+
+#: src/Admin/SettingsPage.php:1049
+msgid "Szkic (bez daty)"
+msgstr "Borrador (sin fecha)"
+
+#: src/Admin/SettingsPage.php:1050
+msgid "Zaplanowane"
+msgstr "Programado"
+
+#: src/Admin/SettingsPage.php:1055
+msgid "Typ wpisu"
+msgstr "Tipo de entrada"
+
+#: src/Admin/SettingsPage.php:1059
+msgid "Status WordPress"
+msgstr "Estado de WordPress"
+
+#: src/Admin/SettingsPage.php:1061
+msgid "Szkic"
+msgstr "Borrador"
+
+#: src/Admin/SettingsPage.php:1062
+msgid "Publikuj automatycznie"
+msgstr "Publicar automáticamente"
+
+#: src/Admin/SettingsPage.php:1067
+msgid "Autor wpisu"
+msgstr "Autor de la entrada"
+
+#: src/Admin/SettingsPage.php:1068
+msgid "— Wybierz autora —"
+msgstr "— Seleccionar autor —"
+
+#: src/Admin/SettingsPage.php:1071
+msgid "Data publikacji"
+msgstr "Fecha de publicación"
+
+#: src/Admin/SettingsPage.php:1073
+msgid "Wymagane, gdy status ustawisz na „Zaplanowane". Czas zostanie zapisany w strefie WordPress."
+msgstr "Requerido cuando el estado se establece en \"Programado\". La hora se guardará en la zona horaria de WordPress."
+
+#: src/Admin/SettingsPage.php:1076
+msgid "Model AI (opcjonalnie)"
+msgstr "Modelo de IA (opcional)"
+
+#: src/Admin/SettingsPage.php:1077
+msgid "Auto (globalny)"
+msgstr "Auto (global)"
+
+#: src/Admin/SettingsPage.php:1080
+msgid "System prompt (opcjonalnie)"
+msgstr "Prompt del sistema (opcional)"
+
+#: src/Admin/SettingsPage.php:1081
+msgid "Pozostaw pusty aby użyć globalnego ustawienia."
+msgstr "Déjalo vacío para usar la configuración global."
+
+#: src/Admin/SettingsPage.php:1084
+msgid "Polecenie dla AI"
+msgstr "Instrucción para IA"
+
+#: src/Admin/SettingsPage.php:1085
+msgid "Opisz temat, słowa kluczowe, ton wypowiedzi itd."
+msgstr "Describe el tema, palabras clave, tono de voz, etc."
+
+#: src/Admin/SettingsPage.php:1088
+msgid "Zapisz zadanie"
+msgstr "Guardar tarea"
+
+#: src/Admin/SettingsPage.php:1089
+msgid "Wyczyść formularz"
+msgstr "Limpiar formulario"
+
+#: src/Admin/SettingsPage.php:1096
+msgid "Status"
+msgstr "Estado"
+
+#: src/Admin/SettingsPage.php:1098
+msgid "Wszystkie"
+msgstr "Todos"
+
+#: src/Admin/SettingsPage.php:1099
+msgid "Szkice"
+msgstr "Borradores"
+
+#: src/Admin/SettingsPage.php:1101
+msgid "W trakcie"
+msgstr "En curso"
+
+#: src/Admin/SettingsPage.php:1102
+msgid "Wykonane"
+msgstr "Completado"
+
+#: src/Admin/SettingsPage.php:1103
+msgid "Błędy"
+msgstr "Fallos"
+
+#: src/Admin/SettingsPage.php:1107
+msgid "Autor"
+msgstr "Autor"
+
+#: src/Admin/SettingsPage.php:1108
+msgid "Wszyscy"
+msgstr "Todos"
+
+#: src/Admin/SettingsPage.php:1113
+msgid "Szukaj"
+msgstr "Buscar"
+
+#: src/Admin/SettingsPage.php:1114
+msgid "Szukaj po tytule/poleceniu…"
+msgstr "Buscar por título/instrucción…"
+
+#: src/Admin/SettingsPage.php:1116
+msgid "Odśwież"
+msgstr "Actualizar"
+
+#: src/Admin/SettingsPage.php:1119
+msgid "Brak zadań w kolejce."
+msgstr "No hay tareas en cola."
+
+#: src/Admin/SettingsPage.php:1142
+msgid "Zapisano zadanie."
+msgstr "Tarea guardada."
+
+#: src/Admin/SettingsPage.php:1143
+msgid "Zaktualizowano zadanie."
+msgstr "Tarea actualizada."
+
+#: src/Admin/SettingsPage.php:1144
+msgid "Usunięto zadanie."
+msgstr "Tarea eliminada."
+
+#: src/Admin/SettingsPage.php:1145
+msgid "Uruchomiono generowanie."
+msgstr "Generación iniciada."
+
+#: src/Admin/SettingsPage.php:1146
+msgid "Coś poszło nie tak. Sprawdź logi i spróbuj ponownie."
+msgstr "Algo salió mal. Revisa los registros e inténtalo de nuevo."
+
+#: src/Admin/SettingsPage.php:1147
+msgid "Wczytywanie…"
+msgstr "Cargando…"
+
+#: src/Admin/SettingsPage.php:1148
+msgid "Brak zaplanowanych zadań."
+msgstr "No hay tareas programadas."
+
+#: src/Admin/SettingsPage.php:1149
+msgid "Brak daty"
+msgstr "Sin fecha"
+
+#: src/Admin/SettingsPage.php:1150
+msgid "Czy na pewno usunąć to zadanie?"
+msgstr "¿Estás seguro de que quieres eliminar esta tarea?"
+
+#: src/Admin/SettingsPage.php:1151
+msgid "Edytuj"
+msgstr "Editar"
+
+#: src/Admin/SettingsPage.php:1152
+msgid "Uruchom teraz"
+msgstr "Ejecutar ahora"
+
+#: src/Admin/SettingsPage.php:1153
+msgid "Usuń"
+msgstr "Eliminar"
+
+#: src/Admin/SettingsPage.php:1154
+msgid "Zadanie"
+msgstr "Tarea"
+
+#: src/Admin/SettingsPage.php:1155
+msgid "Publikacja"
+msgstr "Publicación"
+
+#: src/Admin/SettingsPage.php:1158
+msgid "Zakończone"
+msgstr "Completado"
+
+#: src/Admin/SettingsPage.php:1159
+msgid "Błąd"
+msgstr "Error"
+
