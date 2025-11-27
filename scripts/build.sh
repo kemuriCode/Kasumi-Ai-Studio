@@ -29,6 +29,8 @@ rsync -av \
   --exclude='vendor' \
   --exclude='build' \
   --exclude='scripts' \
+  --exclude='tests' \
+  --exclude='phpunit.xml.dist' \
   --exclude='*.zip' \
   --exclude='*.log' \
   --exclude='.env' \

@@ -1,0 +1,14 @@
+# Exclude from export archives (for GitHub releases)
+tests/ export-ignore
+phpunit.xml.dist export-ignore
+.github/ export-ignore
+scripts/ export-ignore
+README.md export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
+
+# Keep these in releases
+composer.json export
+composer.lock export
+readme.txt export
+

@@ -1,0 +1,156 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., 0.1.0)'
+        required: true
+        type: string
+      bump_type:
+        description: 'Bump type (major, minor, patch)'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  version:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.bump_type != ''
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump
+        run: |
+          chmod +x scripts/version-bump.sh
+          ./scripts/version-bump.sh ${{ github.event.inputs.bump_type }}
+          
+          NEW_VERSION=$(grep -E "^\s*\*\s*Version:" kasumi-ai-generator.php | sed -E 's/.*Version:\s*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Bumped version to: $NEW_VERSION"
+
+      - name: Commit version bump
+        run: |
+          git add kasumi-ai-generator.php readme.txt
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.version }}" || echo "No changes to commit"
+          git push || echo "Nothing to push"
+
+      - name: Create tag
+        run: |
+          git tag -a "v${{ steps.bump.outputs.version }}" -m "Release v${{ steps.bump.outputs.version }}"
+          git push origin "v${{ steps.bump.outputs.version }}"
+
+  build:
+    name: Build Plugin Package
+    runs-on: ubuntu-latest
+    needs: [version]
+    if: always() && (needs.version.result == 'success' || needs.version.result == 'skipped')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Pełna historia dla changelog
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: curl, mbstring, imagick
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ -n "${{ needs.version.outputs.version }}" ]; then
+              VERSION="${{ needs.version.outputs.version }}"
+            else
+              VERSION="${{ github.event.inputs.version }}"
+            fi
+          else
+            VERSION=$(grep -E "^\s*\*\s*Version:" kasumi-ai-generator.php | sed -E 's/.*Version:\s*([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Building version: $VERSION"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          chmod +x scripts/generate-changelog.sh
+          CHANGELOG=$(./scripts/generate-changelog.sh)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG"
+
+      - name: Install Composer dependencies
+        run: |
+          composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Build plugin package
+        run: |
+          chmod +x scripts/build.sh
+          ./scripts/build.sh
+
+      - name: Create release archive name
+        id: archive_name
+        run: |
+          ARCHIVE_NAME="kasumi-ai-generator-${{ steps.get_version.outputs.version }}.zip"
+          echo "archive_name=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+          mv kasumi-ai-generator.zip "$ARCHIVE_NAME"
+          echo "📦 Archive created: $ARCHIVE_NAME"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-package
+          path: kasumi-ai-generator-${{ steps.get_version.outputs.version }}.zip
+          retention-days: 30
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## 📦 Instalacja
+            
+            1. Pobierz plik `kasumi-ai-generator-${{ steps.get_version.outputs.version }}.zip`
+            2. Przejdź do WordPress → Wtyczki → Dodaj nową → Wgraj wtyczkę
+            3. Wybierz pobrany plik ZIP i zainstaluj
+          files: kasumi-ai-generator-${{ steps.get_version.outputs.version }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output download info
+        run: |
+          echo "✅ Build completed successfully!"
+          echo "📦 Package: kasumi-ai-generator-${{ steps.get_version.outputs.version }}.zip"
+          echo "📊 Size: $(du -h kasumi-ai-generator-${{ steps.get_version.outputs.version }}.zip | cut -f1)"
+
