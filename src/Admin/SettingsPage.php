@@ -1032,11 +1032,11 @@ class SettingsPage {
 
 	private function render_schedule_manager_panel(): void {
 		?>
-		<div class="kasumi-schedule-panel card">
+		<div class="kasumi-schedule-panel">
 			<h3><?php esc_html_e( 'Planowanie wpisów i harmonogram', 'kasumi-ai-generator' ); ?></h3>
 			<p class="description"><?php esc_html_e( 'Twórz własne zadania – wybierz autora, typ wpisu, status i dokładną datę publikacji. Kasumi wygeneruje treść w wybranym momencie.', 'kasumi-ai-generator' ); ?></p>
 			<div id="kasumi-schedule-manager" class="kasumi-schedule-grid">
-				<div class="kasumi-schedule-column">
+				<div class="kasumi-schedule-form-column">
 					<div data-kasumi-schedule-alert class="notice notice-success" style="display:none;"></div>
 					<form data-kasumi-schedule-form>
 						<div class="kasumi-field">
@@ -1090,7 +1090,7 @@ class SettingsPage {
 						</div>
 					</form>
 				</div>
-				<div class="kasumi-schedule-column kasumi-schedule-column--list">
+				<div class="kasumi-schedule-list-column">
 					<div class="kasumi-schedule-toolbar">
 						<label>
 							<span><?php esc_html_e( 'Status', 'kasumi-ai-generator' ); ?></span>
