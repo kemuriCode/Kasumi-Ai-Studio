@@ -8,6 +8,8 @@ use function __;
 use function absint;
 use function did_action;
 use function get_option;
+use function max;
+use function min;
 use function sanitize_hex_color_no_hash;
 use function sanitize_text_field;
 use function trim;
@@ -70,6 +72,13 @@ final class Options {
 			'image_server_engine'     => 'imagick',
 			'image_template'          => self::translate_default( 'Kasumi AI – {{title}}' ),
 			'image_overlay_color'     => '1b1f3b',
+			'image_overlay_opacity'   => 75,
+			'image_style'             => 'modern',
+			'image_text_alignment'    => 'center',
+			'image_text_vertical'     => 'middle',
+			'image_text_enabled'      => true,
+			'image_canvas_width'      => 1200,
+			'image_canvas_height'     => 675,
 			'pixabay_query'           => self::translate_default( 'qr code technology interface' ),
 			'pixabay_orientation'     => 'horizontal',
 			'link_keywords'           => '',
@@ -130,6 +139,19 @@ final class Options {
 		$sanitized['image_template'] = sanitize_text_field( $values['image_template'] ?? $defaults['image_template'] );
 		$color = sanitize_hex_color_no_hash( $values['image_overlay_color'] ?? $defaults['image_overlay_color'] );
 		$sanitized['image_overlay_color'] = $color ? $color : $defaults['image_overlay_color'];
+		$opacity = (int) ( $values['image_overlay_opacity'] ?? $defaults['image_overlay_opacity'] );
+		$sanitized['image_overlay_opacity'] = min( 100, max( 0, $opacity ) );
+		$image_style = $values['image_style'] ?? $defaults['image_style'];
+		$sanitized['image_style'] = in_array( $image_style, array( 'modern', 'classic', 'oldschool' ), true ) ? $image_style : $defaults['image_style'];
+		$text_alignment = $values['image_text_alignment'] ?? $defaults['image_text_alignment'];
+		$sanitized['image_text_alignment'] = in_array( $text_alignment, array( 'left', 'center', 'right' ), true ) ? $text_alignment : $defaults['image_text_alignment'];
+		$text_vertical = $values['image_text_vertical'] ?? $defaults['image_text_vertical'];
+		$sanitized['image_text_vertical'] = in_array( $text_vertical, array( 'top', 'middle', 'bottom' ), true ) ? $text_vertical : $defaults['image_text_vertical'];
+		$sanitized['image_text_enabled'] = ! empty( $values['image_text_enabled'] );
+		$width = absint( $values['image_canvas_width'] ?? $defaults['image_canvas_width'] );
+		$height = absint( $values['image_canvas_height'] ?? $defaults['image_canvas_height'] );
+		$sanitized['image_canvas_width']  = min( 4000, max( 640, $width ) );
+		$sanitized['image_canvas_height'] = min( 4000, max( 360, $height ) );
 		$sanitized['pixabay_query'] = sanitize_text_field( $values['pixabay_query'] ?? $defaults['pixabay_query'] );
 		$sanitized['pixabay_orientation'] = in_array(
 			$values['pixabay_orientation'] ?? '',

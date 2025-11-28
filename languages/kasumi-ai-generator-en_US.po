@@ -826,6 +826,10 @@ msgid "Zapisz zadanie"
 msgstr "Save task"
 
 #: src/Admin/SettingsPage.php:1089
+msgid "Zaktualizuj zadanie"
+msgstr "Update task"
+
+#: src/Admin/SettingsPage.php:1089
 msgid "Wyczyść formularz"
 msgstr "Clear form"
 
@@ -1076,3 +1080,58 @@ msgstr "Settings have been reset to defaults."
 #: src/Admin/SettingsPage.php:408
 msgid "Klucz API Pixabay używany do pobierania obrazów w trybie serwerowym."
 msgstr "Pixabay API key used to fetch images in server mode."
+#: src/Admin/SettingsPage.php:598
+msgid "Moc nakładki (%)"
+msgstr "Overlay strength (%)"
+
+#: src/Admin/SettingsPage.php:605
+msgid "Wyższa wartość oznacza bardziej wyrazistą (ciemniejszą) nakładkę."
+msgstr "Higher values create a stronger (darker) overlay."
+
+#: src/Admin/SettingsPage.php:611
+msgid "Styl kompozycji"
+msgstr "Composition style"
+
+#: src/Admin/SettingsPage.php:619
+msgid "Dobiera krój pisma, kerning i proporcje tekstu. Wszystkie style wspierają polskie znaki."
+msgstr "Adjusts font family, kerning and proportions. All styles support Polish characters."
+
+#: src/Admin/SettingsPage.php:626
+msgid "Wyświetl tekst na grafice"
+msgstr "Display text on the image"
+
+#: src/Admin/SettingsPage.php:630
+msgid "Odznacz, aby pozostawić wyłącznie zdjęcie z Pixabay lub zdalnego generatora."
+msgstr "Disable to keep only the Pixabay or remote image without text."
+
+#: src/Admin/SettingsPage.php:636
+msgid "Wyrównanie tekstu"
+msgstr "Text alignment"
+
+#: src/Admin/SettingsPage.php:645
+msgid "Kontroluje układ względem osi poziomej."
+msgstr "Controls the layout along the horizontal axis."
+
+#: src/Admin/SettingsPage.php:650
+msgid "Pozycja pionowa tekstu"
+msgstr "Vertical text position"
+
+#: src/Admin/SettingsPage.php:659
+msgid "Nakładka zachowuje bezpieczne marginesy niezależnie od położenia."
+msgstr "Maintains safe margins regardless of the chosen position."
+
+#: src/Admin/SettingsPage.php:666
+msgid "Szerokość grafiki (px)"
+msgstr "Image width (px)"
+
+#: src/Admin/SettingsPage.php:673
+msgid "Grafika zostanie przeskalowana/przycięta do tej szerokości."
+msgstr "The final image will be scaled or cropped to this width."
+
+#: src/Admin/SettingsPage.php:678
+msgid "Wysokość grafiki (px)"
+msgstr "Image height (px)"
+
+#: src/Admin/SettingsPage.php:686
+msgid "Pozwala zachować określone proporcje (np. 675 px dla 16:9)."
+msgstr "Keeps a specific aspect ratio (e.g. 675 px for 16:9)."

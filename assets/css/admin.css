@@ -41,6 +41,35 @@
 	background: var(--wp-admin-white);
 	border: 1px solid var(--wp-admin-border-color-light);
 	min-height: 60px;
+	overflow: hidden;
+}
+
+/* Responsywny podgląd grafiki */
+.kasumi-ai-preview-image {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	width: 100%;
+	max-width: 100%;
+	overflow: hidden;
+}
+
+.kasumi-ai-preview-image img {
+	max-width: 100%;
+	height: auto;
+	width: auto;
+	display: block;
+	margin: 0 auto;
+	border-radius: 4px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.kasumi-ai-preview-image p {
+	margin: 0;
+	padding: 8px 0;
+	font-size: 13px;
+	color: var(--wp-admin-text-color);
+	text-align: center;
 }
 
 /* Zakładki - nowoczesny styl WordPress */

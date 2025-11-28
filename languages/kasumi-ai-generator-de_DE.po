@@ -309,6 +309,62 @@ msgstr "Du kannst {{title}} und {{summary}} verwenden."
 msgid "Kolor nakładki (HEX)"
 msgstr "Overlay-Farbe (HEX)"
 
+#: src/Admin/SettingsPage.php:598
+msgid "Moc nakładki (%)"
+msgstr "Overlay-Stärke (%)"
+
+#: src/Admin/SettingsPage.php:605
+msgid "Wyższa wartość oznacza bardziej wyrazistą (ciemniejszą) nakładkę."
+msgstr "Ein höherer Wert sorgt für eine stärkere (dunklere) Überblendung."
+
+#: src/Admin/SettingsPage.php:611
+msgid "Styl kompozycji"
+msgstr "Layout-Stil"
+
+#: src/Admin/SettingsPage.php:619
+msgid "Dobiera krój pisma, kerning i proporcje tekstu. Wszystkie style wspierają polskie znaki."
+msgstr "Wählt Schriftart, Kerning und Proportionen. Alle Stile unterstützen polnische Zeichen."
+
+#: src/Admin/SettingsPage.php:626
+msgid "Wyświetl tekst na grafice"
+msgstr "Text auf dem Bild anzeigen"
+
+#: src/Admin/SettingsPage.php:630
+msgid "Odznacz, aby pozostawić wyłącznie zdjęcie z Pixabay lub zdalnego generatora."
+msgstr "Deaktivieren, um nur das Pixabay- oder Remote-Bild ohne Text zu behalten."
+
+#: src/Admin/SettingsPage.php:636
+msgid "Wyrównanie tekstu"
+msgstr "Textausrichtung"
+
+#: src/Admin/SettingsPage.php:645
+msgid "Kontroluje układ względem osi poziomej."
+msgstr "Steuert die Ausrichtung auf der horizontalen Achse."
+
+#: src/Admin/SettingsPage.php:650
+msgid "Pozycja pionowa tekstu"
+msgstr "Vertikale Textposition"
+
+#: src/Admin/SettingsPage.php:659
+msgid "Nakładka zachowuje bezpieczne marginesy niezależnie od położenia."
+msgstr "Hält sichere Ränder unabhängig von der Position ein."
+
+#: src/Admin/SettingsPage.php:666
+msgid "Szerokość grafiki (px)"
+msgstr "Bildbreite (px)"
+
+#: src/Admin/SettingsPage.php:673
+msgid "Grafika zostanie przeskalowana/przycięta do tej szerokości."
+msgstr "Das endgültige Bild wird auf diese Breite skaliert oder zugeschnitten."
+
+#: src/Admin/SettingsPage.php:678
+msgid "Wysokość grafiki (px)"
+msgstr "Bildhöhe (px)"
+
+#: src/Admin/SettingsPage.php:686
+msgid "Pozwala zachować określone proporcje (np. 675 px dla 16:9)."
+msgstr "Hilft, ein bestimmtes Seitenverhältnis beizubehalten (z. B. 675 px für 16:9)."
+
 #: src/Admin/SettingsPage.php:410
 msgid "Słowa kluczowe Pixabay"
 msgstr "Pixabay-Stichwörter"
@@ -824,6 +880,10 @@ msgstr "Beschreiben Sie das Thema, Schlüsselwörter, Tonfall usw."
 #: src/Admin/SettingsPage.php:1088
 msgid "Zapisz zadanie"
 msgstr "Aufgabe speichern"
+
+#: src/Admin/SettingsPage.php:1089
+msgid "Zaktualizuj zadanie"
+msgstr "Aufgabe aktualisieren"
 
 #: src/Admin/SettingsPage.php:1089
 msgid "Wyczyść formularz"

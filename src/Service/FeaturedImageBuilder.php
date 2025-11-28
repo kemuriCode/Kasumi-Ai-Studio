@@ -14,45 +14,120 @@ use Kasumi\AIGenerator\Options;
 
 use const ABSPATH;
 use function __;
+use function array_map;
 use function array_rand;
+use function ceil;
 use function base64_encode;
 use function class_exists;
+use function dirname;
 use function lcfirst;
 use function explode;
 use function extension_loaded;
+use function file_exists;
+use function function_exists;
 use function imagecolorallocate;
 use function imagecolorallocatealpha;
 use function imagecreatefromstring;
+use function imagecreatetruecolor;
+use function imagealphablending;
+use function imagecopyresampled;
 use function imagedestroy;
 use function imagefilledrectangle;
+use function imagefontheight;
+use function imagefontwidth;
 use function imagejpeg;
+use function imageline;
+use function imagettfbbox;
+use function imagettftext;
 use function imagestring;
 use function imagesx;
 use function imagesy;
 use function imagewebp;
 use function implode;
 use function is_array;
+use function is_readable;
 use function is_wp_error;
 use function json_decode;
+use function preg_replace;
+use function mb_strlen;
+use function mb_strtoupper;
 use function ob_get_clean;
 use function ob_start;
+use function preg_split;
+use function strlen;
 use function set_post_thumbnail;
 use function sprintf;
 use function strip_tags;
 use function time;
+use function trim;
 use function update_post_meta;
 use function wordwrap;
+use function wp_normalize_path;
 use function wp_generate_attachment_metadata;
 use function wp_insert_attachment;
 use function wp_strip_all_tags;
 use function wp_trim_words;
 use function wp_update_attachment_metadata;
 use function wp_upload_bits;
+use function trailingslashit;
 
 /**
  * Buduje grafiki wyróżniające.
  */
 class FeaturedImageBuilder {
+	private const STYLE_PRESETS = array(
+		'modern'   => array(
+			'font_candidates' => array(
+				'Inter-SemiBold.ttf',
+				'Inter-Bold.ttf',
+			),
+			'system_fonts'    => array(
+				'/usr/share/fonts/truetype/inter/Inter-SemiBold.ttf',
+				'/usr/share/fonts/truetype/google-fonts/Inter-SemiBold.ttf',
+				'/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+			),
+			'size_ratio'  => 18,
+			'line_height' => 1.32,
+			'kerning'     => 0.8,
+			'uppercase'   => false,
+			'weight'      => 600,
+		),
+		'classic'  => array(
+			'font_candidates' => array(
+				'Merriweather-Bold.ttf',
+				'PlayfairDisplay-SemiBold.ttf',
+			),
+			'system_fonts'    => array(
+				'/usr/share/fonts/truetype/merriweather/Merriweather-Bold.ttf',
+				'/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf',
+				'/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
+			),
+			'size_ratio'  => 20,
+			'line_height' => 1.4,
+			'kerning'     => 0.4,
+			'uppercase'   => false,
+			'weight'      => 600,
+		),
+		'oldschool'=> array(
+			'font_candidates' => array(
+				'SpaceMono-Bold.ttf',
+				'RubikMonoOne-Regular.ttf',
+			),
+			'system_fonts'    => array(
+				'/usr/share/fonts/truetype/space-mono/SpaceMono-Bold.ttf',
+				'/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf',
+			),
+			'size_ratio'  => 22,
+			'line_height' => 1.2,
+			'kerning'     => 1.1,
+			'uppercase'   => true,
+			'weight'      => 700,
+		),
+	);
+
+	private const DEFAULT_STYLE = 'modern';
+	private const TEXT_MARGIN = 56;
+
 	private Client $http_client;
 
 	public function __construct(
@@ -168,8 +243,13 @@ class FeaturedImageBuilder {
 			$imagick = new Imagick();
 			$imagick->readImageBlob( $binary );
 			$imagick->setImageColorspace( Imagick::COLORSPACE_SRGB );
-			$this->apply_overlay( $imagick, (string) Options::get( 'image_overlay_color', '1b1f3b' ) );
-			$this->annotate_caption( $imagick, $article );
+			$this->normalize_imagick_canvas( $imagick );
+			$this->apply_overlay( $imagick, $this->get_overlay_color(), $this->get_overlay_opacity() );
+
+			if ( $this->should_render_caption() ) {
+				$this->annotate_caption_imagick( $imagick, $article );
+			}
+
 			$imagick->setImageFormat( 'webp' );
 
 			return $imagick->getImageBlob();
@@ -187,40 +267,42 @@ class FeaturedImageBuilder {
 	 * @param array<string, mixed> $article
 	 */
 	private function process_with_gd( string $binary, array $article ): ?string {
-		$canvas = imagecreatefromstring( $binary );
+		$source = imagecreatefromstring( $binary );
 
-		if ( false === $canvas ) {
+		if ( false === $source ) {
 			return null;
 		}
 
-		$width    = imagesx( $canvas );
-		$height   = imagesy( $canvas );
-		$hex      = $this->hex_to_rgb( (string) Options::get( 'image_overlay_color', '1b1f3b' ) );
-		$overlay  = imagecolorallocatealpha( $canvas, $hex['r'], $hex['g'], $hex['b'], 110 );
+		$dimensions = $this->get_canvas_dimensions();
+		$canvas     = imagecreatetruecolor( $dimensions['width'], $dimensions['height'] );
 
-		imagefilledrectangle( $canvas, 0, (int) ( $height * 0.65 ), $width, $height, $overlay );
-
-		$caption   = $this->build_caption( $article );
-		$lines     = explode( "\n", wordwrap( $caption, 30 ) );
-		$lineCount = count( $lines );
-		$startY    = max( 12, $height - ( $lineCount * 18 ) - 18 );
-		$white     = imagecolorallocate( $canvas, 255, 255, 255 );
-
-		foreach ( $lines as $line ) {
-			imagestring( $canvas, 5, 20, $startY, $line, $white );
-			$startY += 18;
+		if ( false === $canvas ) {
+			imagedestroy( $source );
+			return null;
 		}
 
-		ob_start();
-		if ( function_exists( 'imagewebp' ) ) {
-			imagewebp( $canvas );
-		} else {
-			imagejpeg( $canvas, null, 90 );
-		}
-		$blob = ob_get_clean();
-		imagedestroy( $canvas );
+		imagealphablending( $canvas, true );
+		imagecopyresampled(
+			$canvas,
+			$source,
+			0,
+			0,
+			0,
+			0,
+			$dimensions['width'],
+			$dimensions['height'],
+			imagesx( $source ),
+			imagesy( $source )
+		);
+		imagedestroy( $source );
 
-		return $blob ?: null;
+		$this->apply_overlay_gd( $canvas, $this->get_overlay_color(), $this->get_overlay_opacity() );
+
+		if ( $this->should_render_caption() ) {
+			$this->annotate_caption_gd( $canvas, $article );
+		}
+
+		return $this->export_gd_image( $canvas );
 	}
 
 	private function fetch_pixabay_url(): ?string {
@@ -328,26 +410,382 @@ class FeaturedImageBuilder {
 		return $attachment_id;
 	}
 
-	private function apply_overlay( Imagick $imagick, string $color ): void {
+	private function normalize_imagick_canvas( Imagick $imagick ): void {
+		$dimensions = $this->get_canvas_dimensions();
+		$imagick->cropThumbnailImage( $dimensions['width'], $dimensions['height'] );
+	}
+
+	private function apply_overlay( Imagick $imagick, string $color, float $opacity ): void {
 		$overlay = new Imagick();
 		$overlay->newImage( $imagick->getImageWidth(), $imagick->getImageHeight(), new ImagickPixel( '#' . $color ) );
-		$overlay->setImageAlpha( 0.35 );
+		$overlay->setImageAlpha( max( 0.0, min( 1.0, $opacity ) ) );
 		$imagick->compositeImage( $overlay, Imagick::COMPOSITE_OVER, 0, 0 );
+	}
+
+	private function apply_overlay_gd( \GdImage $canvas, string $color, float $opacity ): void {
+		$rgb    = $this->hex_to_rgb( $color );
+		$alpha  = $this->opacity_to_alpha( $opacity );
+		$width  = imagesx( $canvas );
+		$height = imagesy( $canvas );
+		$brush  = imagecolorallocatealpha( $canvas, $rgb['r'], $rgb['g'], $rgb['b'], $alpha );
+
+		imagefilledrectangle( $canvas, 0, 0, $width, $height, $brush );
+	}
+
+	private function export_gd_image( \GdImage $canvas ): ?string {
+		ob_start();
+
+		if ( function_exists( 'imagewebp' ) ) {
+			imagewebp( $canvas, null, 90 );
+		} else {
+			imagejpeg( $canvas, null, 90 );
+		}
+
+		$blob = ob_get_clean();
+		imagedestroy( $canvas );
+
+		return $blob ?: null;
 	}
 
 	/**
 	 * @param array<string, mixed> $article
 	 */
-	private function annotate_caption( Imagick $imagick, array $article ): void {
-		$caption = $this->build_caption( $article );
+	private function annotate_caption_imagick( Imagick $imagick, array $article ): void {
+		$style    = $this->get_style_settings();
+		$caption  = $this->prepare_caption_text( $article, $style );
+		$fontSize = $this->calculate_font_size( $imagick->getImageWidth(), $style );
+		$draw     = new ImagickDraw();
+		$fontPath = $style['font_path'] ?? null;
 
-		$draw = new ImagickDraw();
+		if ( $fontPath ) {
+			$draw->setFont( $fontPath );
+		}
+
 		$draw->setFillColor( new ImagickPixel( '#ffffff' ) );
-		$draw->setFontSize( max( 40, (int) ( $imagick->getImageWidth() / 20 ) ) );
-		$draw->setFontWeight( 600 );
-		$draw->setGravity( Imagick::GRAVITY_SOUTHWEST );
-		$draw->setTextKerning( 1.2 );
-		$imagick->annotateImage( $draw, 48, 48, 0, strip_tags( $caption ) );
+		$draw->setFontSize( $fontSize );
+		$draw->setFontWeight( (int) ( $style['weight'] ?? 600 ) );
+		$draw->setTextKerning( (float) ( $style['kerning'] ?? 0.8 ) );
+
+		$maxWidth = $imagick->getImageWidth() - ( self::TEXT_MARGIN * 2 );
+		$lines    = $this->wrap_text_lines( $caption, $fontSize, $fontPath, $maxWidth );
+		$lineHeight = (int) ceil( $fontSize * ( $style['line_height'] ?? 1.3 ) );
+		$startY   = $this->resolve_vertical_start(
+			$this->get_text_vertical_position(),
+			$imagick->getImageHeight(),
+			$lineHeight,
+			count( $lines )
+		);
+
+		foreach ( $lines as $line ) {
+			$lineWidth = 0;
+
+			if ( $fontPath ) {
+				$metrics   = $imagick->queryFontMetrics( $draw, $line );
+				$lineWidth = (int) ceil( $metrics['textWidth'] ?? 0 );
+			}
+
+			$x = $this->resolve_horizontal_start_for_imagick(
+				$this->get_text_alignment(),
+				$imagick->getImageWidth(),
+				$lineWidth
+			);
+
+			$imagick->annotateImage( $draw, $x, $startY, 0, $line );
+			$startY += $lineHeight;
+		}
+	}
+
+	/**
+	 * @param array<string, mixed> $article
+	 */
+	private function annotate_caption_gd( \GdImage $canvas, array $article ): void {
+		$style       = $this->get_style_settings();
+		$caption     = $this->prepare_caption_text( $article, $style );
+		$fontPath    = $style['font_path'] ?? null;
+		$fontSize    = $this->calculate_font_size( imagesx( $canvas ), $style );
+		$lineHeight  = (int) ceil( $fontSize * ( $style['line_height'] ?? 1.3 ) );
+		$textColor   = imagecolorallocate( $canvas, 255, 255, 255 );
+		$maxWidth    = imagesx( $canvas ) - ( self::TEXT_MARGIN * 2 );
+		$lines       = $this->wrap_text_lines( $caption, $fontSize, $fontPath, $maxWidth );
+		$startY      = $this->resolve_vertical_start(
+			$this->get_text_vertical_position(),
+			imagesy( $canvas ),
+			$lineHeight,
+			count( $lines )
+		);
+
+		if ( $fontPath && function_exists( 'imagettftext' ) ) {
+			foreach ( $lines as $line ) {
+				$x = $this->resolve_horizontal_start_for_gd(
+					$this->get_text_alignment(),
+					imagesx( $canvas ),
+					$line,
+					$fontPath,
+					$fontSize
+				);
+
+				imagettftext( $canvas, $fontSize, 0, $x, $startY, $textColor, $fontPath, $line );
+				$startY += $lineHeight;
+			}
+
+			return;
+		}
+
+		// Fallback bez bibliotek TrueType
+		$font      = 5;
+		$lineHeight = imagefontheight( $font ) + 8;
+		$startY    = $this->resolve_vertical_start(
+			$this->get_text_vertical_position(),
+			imagesy( $canvas ),
+			$lineHeight,
+			count( $lines )
+		);
+
+		foreach ( $lines as $line ) {
+			$lineWidth = imagefontwidth( $font ) * mb_strlen( $line );
+			$x         = $this->resolve_horizontal_start_from_width(
+				$this->get_text_alignment(),
+				imagesx( $canvas ),
+				$lineWidth
+			);
+
+			imagestring( $canvas, $font, $x, $startY - imagefontheight( $font ), $line, $textColor );
+			$startY += $lineHeight;
+		}
+	}
+
+	private function prepare_caption_text( array $article, array $style ): string {
+		$caption = trim( preg_replace( '/\s+/u', ' ', strip_tags( $this->build_caption( $article ) ) ) ?? '' );
+
+		if ( ! empty( $style['uppercase'] ) ) {
+			return mb_strtoupper( $caption );
+		}
+
+		return $caption;
+	}
+
+	private function wrap_text_lines( string $text, int $fontSize, ?string $fontPath, int $maxWidth ): array {
+		$text    = trim( $text );
+		$maxWidth = max( 200, $maxWidth );
+
+		if ( '' === $text ) {
+			return array();
+		}
+
+		$words = preg_split( '/\s+/u', $text ) ?: array( $text );
+		$lines = array();
+		$line  = '';
+
+		foreach ( $words as $word ) {
+			$test = trim( $line . ' ' . $word );
+
+			if ( '' === $line ) {
+				$line = $word;
+				continue;
+			}
+
+			if ( $fontPath && function_exists( 'imagettfbbox' ) ) {
+				$box   = imagettfbbox( $fontSize, 0, $fontPath, $test );
+				$width = (int) abs( $box[2] - $box[0] );
+
+				if ( $width > $maxWidth ) {
+					$lines[] = $line;
+					$line    = $word;
+					continue;
+				}
+			} elseif ( mb_strlen( $test ) * ( $fontSize / 1.8 ) > $maxWidth ) {
+				$lines[] = $line;
+				$line    = $word;
+				continue;
+			}
+
+			$line = $test;
+		}
+
+		if ( '' !== $line ) {
+			$lines[] = $line;
+		}
+
+		return $lines;
+	}
+
+	private function calculate_font_size( int $canvasWidth, array $style ): int {
+		$ratio = (float) ( $style['size_ratio'] ?? 18 );
+		$size  = (int) max( 28, $canvasWidth / $ratio );
+
+		return min( 120, $size );
+	}
+
+	private function resolve_vertical_start( string $position, int $canvasHeight, int $lineHeight, int $lineCount ): int {
+		$total = $lineHeight * max( 1, $lineCount );
+
+		switch ( $position ) {
+			case 'top':
+				return self::TEXT_MARGIN + $lineHeight;
+			case 'middle':
+				return (int) max(
+					self::TEXT_MARGIN + $lineHeight,
+					( ( $canvasHeight - $total ) / 2 ) + $lineHeight
+				);
+			case 'bottom':
+			default:
+				return max(
+					self::TEXT_MARGIN + $lineHeight,
+					$canvasHeight - self::TEXT_MARGIN - $total + $lineHeight
+				);
+		}
+	}
+
+	private function resolve_horizontal_start_for_imagick( string $alignment, int $canvasWidth, int $lineWidth ): int {
+		return $this->resolve_horizontal_start_from_width( $alignment, $canvasWidth, $lineWidth );
+	}
+
+	private function resolve_horizontal_start_for_gd( string $alignment, int $canvasWidth, string $line, string $fontPath, int $fontSize ): int {
+		if ( function_exists( 'imagettfbbox' ) ) {
+			$box       = imagettfbbox( $fontSize, 0, $fontPath, $line );
+			$lineWidth = (int) abs( $box[2] - $box[0] );
+
+			return $this->resolve_horizontal_start_from_width( $alignment, $canvasWidth, $lineWidth );
+		}
+
+		$approxWidth = (int) ( mb_strlen( $line ) * ( $fontSize / 1.8 ) );
+
+		return $this->resolve_horizontal_start_from_width( $alignment, $canvasWidth, $approxWidth );
+	}
+
+	private function resolve_horizontal_start_from_width( string $alignment, int $canvasWidth, int $lineWidth ): int {
+		switch ( $alignment ) {
+			case 'right':
+				return max( self::TEXT_MARGIN, $canvasWidth - self::TEXT_MARGIN - $lineWidth );
+			case 'center':
+				return (int) max(
+					self::TEXT_MARGIN,
+					( $canvasWidth - $lineWidth ) / 2
+				);
+			case 'left':
+			default:
+				return self::TEXT_MARGIN;
+		}
+	}
+
+	/**
+	 * @return array{width:int,height:int}
+	 */
+	private function get_canvas_dimensions(): array {
+		$width  = (int) Options::get( 'image_canvas_width', 1200 );
+		$height = (int) Options::get( 'image_canvas_height', 675 );
+
+		return array(
+			'width'  => max( 640, min( 4000, $width ) ),
+			'height' => max( 360, min( 4000, $height ) ),
+		);
+	}
+
+	private function get_overlay_color(): string {
+		$color = (string) Options::get( 'image_overlay_color', '1b1f3b' );
+
+		return '' === $color ? '1b1f3b' : $color;
+	}
+
+	private function get_overlay_opacity(): float {
+		$value = (int) Options::get( 'image_overlay_opacity', 75 );
+
+		return max( 0.0, min( 1.0, $value / 100 ) );
+	}
+
+	private function opacity_to_alpha( float $opacity ): int {
+		return (int) max( 0, min( 127, 127 - round( $opacity * 127 ) ) );
+	}
+
+	private function should_render_caption(): bool {
+		return (bool) Options::get( 'image_text_enabled', true );
+	}
+
+	private function get_text_alignment(): string {
+		$alignment = (string) Options::get( 'image_text_alignment', 'center' );
+
+		return in_array( $alignment, array( 'left', 'center', 'right' ), true ) ? $alignment : 'center';
+	}
+
+	private function get_text_vertical_position(): string {
+		$position = (string) Options::get( 'image_text_vertical', 'middle' );
+
+		return in_array( $position, array( 'top', 'middle', 'bottom' ), true ) ? $position : 'middle';
+	}
+
+	private function get_style_settings(): array {
+		$key    = (string) Options::get( 'image_style', self::DEFAULT_STYLE );
+		$preset = self::STYLE_PRESETS[ $key ] ?? self::STYLE_PRESETS[ self::DEFAULT_STYLE ];
+
+		$preset['font_path'] = $this->resolve_font_path( $preset );
+
+		return $preset;
+	}
+
+	private function resolve_font_path( array $preset ): ?string {
+		$candidates = array();
+		$base_dir   = $this->font_base_directory();
+
+		foreach ( (array) ( $preset['font_candidates'] ?? array() ) as $font ) {
+			$candidates[] = $base_dir . $font;
+		}
+
+		foreach ( (array) ( $preset['system_fonts'] ?? array() ) as $font ) {
+			$candidates[] = $font;
+		}
+
+		$candidates[] = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf';
+
+		foreach ( $candidates as $path ) {
+			if ( $path && file_exists( $path ) && is_readable( $path ) ) {
+				return wp_normalize_path( $path );
+			}
+		}
+
+		return null;
+	}
+
+	private function font_base_directory(): string {
+		$base = defined( 'KASUMI_AI_PATH' )
+			? KASUMI_AI_PATH
+			: dirname( __DIR__, 2 ) . '/';
+
+		return wp_normalize_path( trailingslashit( $base ) . 'assets/fonts/' );
+	}
+
+	private function paint_gradient_background( \GdImage $canvas ): void {
+		$width  = imagesx( $canvas );
+		$height = imagesy( $canvas );
+		$base   = $this->hex_to_rgb( $this->get_overlay_color() );
+		$start  = $base;
+		$end    = $this->hex_to_rgb( $this->adjust_hex_brightness( $this->get_overlay_color(), 18 ) );
+
+		for ( $y = 0; $y < $height; $y++ ) {
+			$ratio = $height > 0 ? $y / $height : 0;
+			$color = imagecolorallocate(
+				$canvas,
+				(int) ( $start['r'] + ( $end['r'] - $start['r'] ) * $ratio ),
+				(int) ( $start['g'] + ( $end['g'] - $start['g'] ) * $ratio ),
+				(int) ( $start['b'] + ( $end['b'] - $start['b'] ) * $ratio )
+			);
+			imageline( $canvas, 0, $y, $width, $y, $color );
+		}
+	}
+
+	private function adjust_hex_brightness( string $hex, int $percent ): string {
+		$rgb     = $this->hex_to_rgb( $hex );
+		$percent = max( -100, min( 100, $percent ) );
+
+		$adjusted = array_map(
+			static function( int $component ) use ( $percent ): int {
+				$result = $component + ( $component * $percent / 100 );
+
+				return (int) max( 0, min( 255, round( $result ) ) );
+			},
+			$rgb
+		);
+
+		return sprintf( '%02x%02x%02x', $adjusted['r'], $adjusted['g'], $adjusted['b'] );
 	}
 
 	/**
@@ -421,8 +859,9 @@ class FeaturedImageBuilder {
 	 * @param string $engine 'imagick' lub 'gd'
 	 */
 	private function generate_simple_fallback_image( array $article, string $engine ): ?string {
-		$width  = 1200;
-		$height = 630;
+		$dimensions = $this->get_canvas_dimensions();
+		$width      = $dimensions['width'];
+		$height     = $dimensions['height'];
 
 		return 'gd' === $engine
 			? $this->generate_simple_gd_image( $article, $width, $height )
@@ -441,46 +880,15 @@ class FeaturedImageBuilder {
 			return null;
 		}
 
-		// Gradientowe tło - ciemne do jaśniejszego
-		$color1 = imagecolorallocate( $canvas, 27, 31, 59 ); // #1b1f3b
-		$color2 = imagecolorallocate( $canvas, 42, 48, 80 ); // #2a3050
-		
-		for ( $i = 0; $i < $height; $i++ ) {
-			$ratio = $i / $height;
-			$r = (int) ( 27 + ( 42 - 27 ) * $ratio );
-			$g = (int) ( 31 + ( 48 - 31 ) * $ratio );
-			$b = (int) ( 59 + ( 80 - 59 ) * $ratio );
-			$color = imagecolorallocate( $canvas, $r, $g, $b );
-			imageline( $canvas, 0, $i, $width, $i, $color );
+		imagealphablending( $canvas, true );
+		$this->paint_gradient_background( $canvas );
+		$this->apply_overlay_gd( $canvas, $this->get_overlay_color(), $this->get_overlay_opacity() );
+
+		if ( $this->should_render_caption() ) {
+			$this->annotate_caption_gd( $canvas, $article );
 		}
 
-		// Nakładka na dół
-		$hex = $this->hex_to_rgb( (string) Options::get( 'image_overlay_color', '1b1f3b' ) );
-		$overlay = imagecolorallocatealpha( $canvas, $hex['r'], $hex['g'], $hex['b'], 110 );
-		imagefilledrectangle( $canvas, 0, (int) ( $height * 0.65 ), $width, $height, $overlay );
-
-		// Tekst
-		$caption = $this->build_caption( $article );
-		$lines = explode( "\n", wordwrap( $caption, 40 ) );
-		$lineCount = count( $lines );
-		$startY = max( 40, $height - ( $lineCount * 32 ) - 60 );
-		$white = imagecolorallocate( $canvas, 255, 255, 255 );
-
-		// Użyj większej czcionki (5) i lepszego pozycjonowania
-		foreach ( $lines as $idx => $line ) {
-			imagestring( $canvas, 5, 40, $startY + ( $idx * 32 ), $line, $white );
-		}
-
-		ob_start();
-		if ( function_exists( 'imagewebp' ) ) {
-			imagewebp( $canvas, null, 85 );
-		} else {
-			imagejpeg( $canvas, null, 85 );
-		}
-		$blob = ob_get_clean();
-		imagedestroy( $canvas );
-
-		return $blob ?: null;
+		return $this->export_gd_image( $canvas );
 	}
 
 	/**
@@ -494,16 +902,17 @@ class FeaturedImageBuilder {
 			$imagick->newImage( $width, $height, new ImagickPixel( '#1b1f3b' ) );
 			$imagick->setImageFormat( 'webp' );
 
-			// Gradientowe tło
-			$gradient = new Imagick();
-			$gradient->newPseudoImage( $width, $height, "gradient:#1b1f3b-#2a3050" );
+			$primary   = '#' . $this->get_overlay_color();
+			$secondary = '#' . $this->adjust_hex_brightness( $this->get_overlay_color(), 15 );
+			$gradient  = new Imagick();
+			$gradient->newPseudoImage( $width, $height, "gradient:{$primary}-{$secondary}" );
 			$imagick->compositeImage( $gradient, Imagick::COMPOSITE_OVER, 0, 0 );
 
-			// Nakładka
-			$this->apply_overlay( $imagick, (string) Options::get( 'image_overlay_color', '1b1f3b' ) );
+			$this->apply_overlay( $imagick, $this->get_overlay_color(), $this->get_overlay_opacity() );
 
-			// Tekst
-			$this->annotate_caption( $imagick, $article );
+			if ( $this->should_render_caption() ) {
+				$this->annotate_caption_imagick( $imagick, $article );
+			}
 
 			return $imagick->getImageBlob();
 		} catch ( \Throwable $throwable ) {

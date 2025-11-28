@@ -36,6 +36,18 @@ final class FeaturedImageBuilderTest extends TestCase {
 		update_option( Options::OPTION_NAME, Options::all() );
 	}
 
+	/**
+	 * @param string $method
+	 * @param array<int, mixed> $args
+	 * @return mixed
+	 */
+	private function invokeBuilderMethod( string $method, array $args = array() ) {
+		$reflection = new \ReflectionMethod( FeaturedImageBuilder::class, $method );
+		$reflection->setAccessible( true );
+
+		return $reflection->invokeArgs( $this->builder, $args );
+	}
+
 	public function test_build_skips_when_disabled(): void {
 		update_option( Options::OPTION_NAME, array_merge( Options::all(), array( 'enable_featured_images' => false ) ) );
 
@@ -198,6 +210,75 @@ final class FeaturedImageBuilderTest extends TestCase {
 		$this->assertStringContainsString( 'Test Summary', $result );
 	}
 
+	public function test_get_canvas_dimensions_uses_options(): void {
+		update_option(
+			Options::OPTION_NAME,
+			array_merge(
+				Options::all(),
+				array(
+					'image_canvas_width'  => 1600,
+					'image_canvas_height' => 900,
+				)
+			)
+		);
+
+		$result = $this->invokeBuilderMethod( 'get_canvas_dimensions' );
+
+		$this->assertSame(
+			array(
+				'width'  => 1600,
+				'height' => 900,
+			),
+			$result
+		);
+	}
+
+	public function test_get_canvas_dimensions_clamps_values(): void {
+		update_option(
+			Options::OPTION_NAME,
+			array_merge(
+				Options::all(),
+				array(
+					'image_canvas_width'  => 100,
+					'image_canvas_height' => 5000,
+				)
+			)
+		);
+
+		$result = $this->invokeBuilderMethod( 'get_canvas_dimensions' );
+
+		$this->assertSame( 640, $result['width'] );
+		$this->assertSame( 4000, $result['height'] );
+	}
+
+	public function test_overlay_opacity_is_clamped(): void {
+		update_option( Options::OPTION_NAME, array_merge( Options::all(), array( 'image_overlay_opacity' => 150 ) ) );
+
+		$result = $this->invokeBuilderMethod( 'get_overlay_opacity' );
+
+		$this->assertSame( 1.0, $result );
+	}
+
+	public function test_should_render_caption_respects_option(): void {
+		update_option( Options::OPTION_NAME, array_merge( Options::all(), array( 'image_text_enabled' => false ) ) );
+
+		$this->assertFalse( $this->invokeBuilderMethod( 'should_render_caption' ) );
+	}
+
+	public function test_prepare_caption_text_respects_uppercase_setting(): void {
+		update_option( Options::OPTION_NAME, array_merge( Options::all(), array( 'image_template' => '{{title}}' ) ) );
+
+		$result = $this->invokeBuilderMethod(
+			'prepare_caption_text',
+			array(
+				array( 'title' => 'Tekst testowy' ),
+				array( 'uppercase' => true ),
+			)
+		);
+
+		$this->assertSame( 'TEKST TESTOWY', $result );
+	}
+
 	public function test_build_alt_text_uses_title(): void {
 		$method = new \ReflectionMethod( FeaturedImageBuilder::class, 'build_alt_text' );
 		$method->setAccessible( true );
@@ -266,4 +347,3 @@ final class FeaturedImageBuilderTest extends TestCase {
 		}
 	}
 }
-

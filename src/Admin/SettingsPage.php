@@ -594,6 +594,100 @@ class SettingsPage {
 		);
 
 		$this->add_field(
+			'image_overlay_opacity',
+			__( 'Moc nakładki (%)', 'kasumi-full-ai-content-generator' ),
+			$section,
+			array(
+				'type'        => 'number',
+				'min'         => 0,
+				'max'         => 100,
+				'step'        => 5,
+				'description' => __( 'Wyższa wartość oznacza bardziej wyrazistą (ciemniejszą) nakładkę.', 'kasumi-full-ai-content-generator' ),
+			)
+		);
+
+		$this->add_field(
+			'image_style',
+			__( 'Styl kompozycji', 'kasumi-full-ai-content-generator' ),
+			$section,
+			array(
+				'type'    => 'select',
+				'choices' => array(
+					'modern'   => __( 'Nowoczesny', 'kasumi-full-ai-content-generator' ),
+					'classic'  => __( 'Klasyczny', 'kasumi-full-ai-content-generator' ),
+					'oldschool'=> __( 'Oldschool', 'kasumi-full-ai-content-generator' ),
+				),
+				'description' => __( 'Dobiera krój pisma, kerning i proporcje tekstu. Wszystkie style wspierają polskie znaki.', 'kasumi-full-ai-content-generator' ),
+			)
+		);
+
+		$this->add_field(
+			'image_text_enabled',
+			__( 'Wyświetl tekst na grafice', 'kasumi-full-ai-content-generator' ),
+			$section,
+			array(
+				'type'        => 'checkbox',
+				'description' => __( 'Odznacz, aby pozostawić wyłącznie zdjęcie z Pixabay lub zdalnego generatora.', 'kasumi-full-ai-content-generator' ),
+			)
+		);
+
+		$this->add_field(
+			'image_text_alignment',
+			__( 'Wyrównanie tekstu', 'kasumi-full-ai-content-generator' ),
+			$section,
+			array(
+				'type'    => 'select',
+				'choices' => array(
+					'left'   => __( 'Lewo', 'kasumi-full-ai-content-generator' ),
+					'center' => __( 'Środek', 'kasumi-full-ai-content-generator' ),
+					'right'  => __( 'Prawo', 'kasumi-full-ai-content-generator' ),
+				),
+				'description' => __( 'Kontroluje układ względem osi poziomej.', 'kasumi-full-ai-content-generator' ),
+			)
+		);
+
+		$this->add_field(
+			'image_text_vertical',
+			__( 'Pozycja pionowa tekstu', 'kasumi-full-ai-content-generator' ),
+			$section,
+			array(
+				'type'    => 'select',
+				'choices' => array(
+					'top'    => __( 'Góra', 'kasumi-full-ai-content-generator' ),
+					'middle' => __( 'Środek', 'kasumi-full-ai-content-generator' ),
+					'bottom' => __( 'Dół', 'kasumi-full-ai-content-generator' ),
+				),
+				'description' => __( 'Nakładka zachowuje bezpieczne marginesy niezależnie od położenia.', 'kasumi-full-ai-content-generator' ),
+			)
+		);
+
+		$this->add_field(
+			'image_canvas_width',
+			__( 'Szerokość grafiki (px)', 'kasumi-full-ai-content-generator' ),
+			$section,
+			array(
+				'type'        => 'number',
+				'min'         => 640,
+				'max'         => 4000,
+				'step'        => 10,
+				'description' => __( 'Grafika zostanie przeskalowana/przycięta do tej szerokości.', 'kasumi-full-ai-content-generator' ),
+			)
+		);
+
+		$this->add_field(
+			'image_canvas_height',
+			__( 'Wysokość grafiki (px)', 'kasumi-full-ai-content-generator' ),
+			$section,
+			array(
+				'type'        => 'number',
+				'min'         => 360,
+				'max'         => 4000,
+				'step'        => 10,
+				'description' => __( 'Pozwala zachować określone proporcje (np. 675 px dla 16:9).', 'kasumi-full-ai-content-generator' ),
+			)
+		);
+
+		$this->add_field(
 			'pixabay_query',
 			__( 'Słowa kluczowe Pixabay', 'kasumi-full-ai-content-generator' ),
 			$section
@@ -987,6 +1081,8 @@ class SettingsPage {
 			'description' => '',
 			'choices'     => array(),
 			'min'         => null,
+			'max'         => null,
+			'step'        => null,
 			'placeholder' => '',
 			'help'        => '',
 		);
@@ -1119,17 +1215,30 @@ class SettingsPage {
 					esc_attr( $color_value ?: '#1b1f3b' )
 				);
 				break;
-			default:
-				printf(
-					'<input type="%5$s" class="regular-text" name="%1$s[%2$s]" value="%3$s" placeholder="%4$s" %6$s>',
-					esc_attr( Options::OPTION_NAME ),
-					esc_attr( $key ),
-					esc_attr( (string) $value ),
-					esc_attr( (string) $args['placeholder'] ),
-					esc_attr( $type ),
-					null !== $args['min'] ? 'min="' . esc_attr( (string) $args['min'] ) . '"' : ''
-				);
-		}
+				default:
+					$attributes = array();
+					if ( null !== $args['min'] ) {
+						$attributes[] = 'min="' . esc_attr( (string) $args['min'] ) . '"';
+					}
+					if ( null !== $args['max'] ) {
+						$attributes[] = 'max="' . esc_attr( (string) $args['max'] ) . '"';
+					}
+					if ( null !== $args['step'] ) {
+						$attributes[] = 'step="' . esc_attr( (string) $args['step'] ) . '"';
+					}
+
+					$attr_string = $attributes ? ' ' . implode( ' ', $attributes ) : '';
+
+					printf(
+						'<input type="%5$s" class="regular-text" name="%1$s[%2$s]" value="%3$s" placeholder="%4$s" %6$s>',
+						esc_attr( Options::OPTION_NAME ),
+						esc_attr( $key ),
+						esc_attr( (string) $value ),
+						esc_attr( (string) $args['placeholder'] ),
+						esc_attr( $type ),
+						$attr_string
+					);
+			}
 
 		if ( ! empty( $args['description'] ) ) {
 			printf(

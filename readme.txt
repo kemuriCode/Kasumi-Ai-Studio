@@ -4,23 +4,25 @@ Donate link: https://kemuri.codes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.1.3
+Stable tag: 0.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: ai, openai, gemini, pixabay, wp-cron
 
-Generate SEO-friendly posts, featured images (Imagic+Pixabay) and AI comments using OpenAI & Gemini. Fully automated with WP-Cron.
+Generate SEO-friendly posts, featured images (Imagic+Pixabay) and AI comments using the latest AI models: GPT-5.1, GPT-4o (OpenAI) and Gemini 3 (Google). Full backward compatibility with older models (GPT-4.1, GPT-4o-mini, Gemini 2.0 Flash). Fully automated with WP-Cron.
 
 == Description ==
 
-Kasumi – AI Content & Image Generator automates long-form posts, featured images and smart comment suggestions, thanks to native integrations with OpenAI, Google Gemini, Imagic and Pixabay. Configure WP-Cron schedules, custom prompts, and moderation workflows to keep your WordPress site fresh without manual workload.
+Kasumi – AI Content & Image Generator automates long-form posts, featured images and smart comment suggestions, powered by cutting-edge AI models. **Full support for the newest models: GPT-5.1, GPT-4o (OpenAI) and Gemini 3 (Google)**. Backward compatible with all previous models including GPT-4.1, GPT-4o-mini, Gemini 2.0 Flash, and older versions. Choose the perfect model for your needs and budget! Experience the latest in AI technology with native integrations for OpenAI, Google Gemini, Imagic and Pixabay. Configure WP-Cron schedules, custom prompts, and moderation workflows to keep your WordPress site fresh without manual workload.
 
 === Key features ===
 
-* **AI content engine (OpenAI + Google Gemini)**
-	+ Generate SEO-ready posts with titles, headings, excerpts, meta descriptions and internal-link prompts.
+* **AI content engine with full model support - from latest to legacy (OpenAI GPT-5.1/GPT-4o + Google Gemini 3)**
+	+ **Newest models:** GPT-5.1, GPT-4o (OpenAI) and Gemini 3 (Google) for cutting-edge performance.
+	+ **All models supported:** Backward compatible with GPT-4.1, GPT-4o-mini, Gemini 2.0 Flash, and older versions - choose what works best for you!
+	+ Generate SEO-ready posts with titles, headings, excerpts, meta descriptions and internal-link prompts using any available model.
 	+ Multi-language support, custom system/user prompts, and JSON logs for editorial review.
-	+ Outputs native Gutenberg blocks (paragraphs, headings, lists, quotes, images) so no “Classic” block conversion is required, while still working with classic editor and page builders.
+	+ Outputs native Gutenberg blocks (paragraphs, headings, lists, quotes, images) so no "Classic" block conversion is required, while still working with classic editor and page builders.
 = Does it create native Gutenberg blocks? =
 Yes. Markdown returned by the AI is mapped to core blocks (paragraph, heading, list, quote, image, code, separator). If an element is unknown it falls back to a `core/html` block, so everything stays editable. To inspect the block tree you can run:
 
@@ -54,9 +56,10 @@ wp eval 'print_r( parse_blocks( get_post(123)->post_content ) );'
 
 === Krótki opis (PL) ===
 
-Kasumi automatyzuje tworzenie treści na WordPressie:
+Kasumi automatyzuje tworzenie treści na WordPressie z pełnym wsparciem dla najnowszych i starszych modeli AI:
 
-* generuje wpisy z użyciem OpenAI i Gemini,
+* generuje wpisy przy użyciu najnowszych modeli GPT-5.1, GPT-4o (OpenAI) oraz Gemini 3 (Google),
+* pełna kompatybilność wsteczna - obsługuje także starsze modele (GPT-4.1, GPT-4o-mini, Gemini 2.0 Flash i inne) - wybierz odpowiedni dla siebie!
 * tworzy obrazy wyróżniające z Imagic + Pixabay,
 * proponuje komentarze AI,
 * działa w oparciu o harmonogram WP-Cron i logi diagnostyczne.
@@ -71,7 +74,7 @@ Kasumi automatyzuje tworzenie treści na WordPressie:
 == Frequently Asked Questions ==
 
 = Does this plugin use OpenAI or Google Gemini? =
-Yes. You can pick OpenAI, Google Gemini, or a hybrid mode per task (content, images, comments). API keys are stored via the WordPress options API.
+Yes. Kasumi supports the **newest AI models: GPT-5.1, GPT-4o (OpenAI) and Gemini 3 (Google)**, plus full backward compatibility with all previous models including GPT-4.1, GPT-4o-mini, Gemini 2.0 Flash, and older versions. You can pick OpenAI, Google Gemini, or a hybrid mode per task (content, images, comments). All models available in your API accounts are automatically listed - choose the perfect one for your needs! API keys are stored securely via the WordPress options API.
 
 = Can it fully automate blog posts? =
 Yes. Configure WP-Cron (hourly, daily, custom) to generate drafts or published posts with custom prompts.
