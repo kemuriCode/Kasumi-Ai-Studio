@@ -7,10 +7,14 @@ namespace Kasumi\AIGenerator\Service;
 use Gemini\Client as GeminiClient;
 use OpenAI\Client as OpenAIClient;
 use Kasumi\AIGenerator\Log\Logger;
+use Kasumi\AIGenerator\Status\StatsTracker;
 use Kasumi\AIGenerator\Options;
 
+use function __;
 use function array_filter;
 use function array_slice;
+use function array_unique;
+use function array_values;
 use function basename;
 use function base64_decode;
 use function count;
@@ -36,6 +40,7 @@ use const JSON_PRETTY_PRINT;
 class AiClient {
 	private ?OpenAIClient $openai_client = null;
 	private ?GeminiClient $gemini_client = null;
+	private ?array $last_gemini_usage = null;
 
 	public function __construct( private Logger $logger ) {}
 
@@ -43,10 +48,12 @@ class AiClient {
 	 * @param array<string, mixed> $payload
 	 */
 	public function generate_article( array $payload ): ?array {
+		$skip_stats = ! empty( $payload['skip_stats'] );
+
 		foreach ( $this->provider_order() as $provider ) {
 			$result = 'gemini' === $provider
-				? $this->generate_article_with_gemini( $payload )
-				: $this->generate_article_with_openai( $payload );
+				? $this->generate_article_with_gemini( $payload, $skip_stats )
+				: $this->generate_article_with_openai( $payload, $skip_stats );
 
 			if ( $result ) {
 				return $result;
@@ -96,7 +103,7 @@ class AiClient {
 
 	/**
 	 * @param array<string, mixed> $article
-	 * @param array<int, array{title: string, url: string, summary?: string}> $candidates
+	 * @param array<int, array{title: string, url: string, summary?: string, anchors?: array<int, string>, priority?: string}> $candidates
 	 * @param string[] $hints
 	 * @return array<int, array{anchor: string, url: string, title?: string}>
 	 */
@@ -131,7 +138,7 @@ class AiClient {
 	/**
 	 * @return array{title?: string, slug?: string, excerpt?: string, content?: string, summary?: string}|null
 	 */
-	private function generate_article_with_openai( array $payload ): ?array {
+	private function generate_article_with_openai( array $payload, bool $skip_stats = false ): ?array {
 		$client = $this->get_openai_client();
 
 		if ( null === $client ) {
@@ -139,9 +146,10 @@ class AiClient {
 		}
 
 		try {
+			$model   = (string) ( $payload['model'] ?? $this->get_openai_model() );
 			$response = $client->chat()->create(
 				array(
-					'model'       => $payload['model'] ?? $this->get_openai_model(),
+					'model'       => $model,
 					'temperature' => 0.7,
 					'messages'    => array(
 						array(
@@ -166,23 +174,52 @@ class AiClient {
 
 		$content = $response->choices[0]->message->content ?? '';
 
-		return $this->decode_content( $content );
+		$article = $this->decode_content( $content );
+
+		if ( $article ) {
+			$usage = $this->extract_openai_usage_counts( $response );
+			$this->record_usage(
+				'article',
+				'openai',
+				$model,
+				$usage['input_tokens'],
+				$usage['output_tokens'],
+				$skip_stats
+			);
+		}
+
+		return $article;
 	}
 
-	private function generate_article_with_gemini( array $payload ): ?array {
+	private function generate_article_with_gemini( array $payload, bool $skip_stats = false ): ?array {
 		$prompt = sprintf(
 			"System: %s\n\nPolecenie:\n%s",
 			$payload['system_prompt'] ?? $this->default_system_prompt(),
 			$payload['user_prompt'] ?? ''
 		);
 
-		$text = $this->gemini_generate_text( $prompt );
+		$model = (string) ( $payload['model'] ?? $this->get_gemini_model() );
+		$text  = $this->gemini_generate_text( $prompt, $model );
 
 		if ( empty( $text ) ) {
 			return null;
 		}
 
-		return $this->decode_content( $text );
+		$article = $this->decode_content( $text );
+
+		if ( $article ) {
+			$usage = $this->consume_gemini_usage();
+			$this->record_usage(
+				'article',
+				'gemini',
+				$model,
+				$usage['input_tokens'],
+				$usage['output_tokens'],
+				$skip_stats
+			);
+		}
+
+		return $article;
 	}
 
 	private function decode_content( string $raw ): ?array {
@@ -213,24 +250,15 @@ class AiClient {
 		$custom = Options::get( 'system_prompt', '' );
 
 		if ( ! empty( $custom ) ) {
-			return $custom;
+			return (string) $custom;
 		}
 
-		$base_prompt = Options::get( 'topic_strategy', '' );
+		$fallback = __(
+			"Jestem doświadczonym copywriterem i specjalistą od content marketingu. Tworzę teksty techniczne, marketingowe i kreatywne tak, aby były merytoryczne, zrozumiałe i użyteczne dla czytelnika.\n\nPisz w pierwszej osobie, w tonie profesjonalnym, ale spokojnym i przystępnym. Unikaj przesadnego entuzjazmu i nachalnego języka sprzedażowego. Zadbaj o naturalny rytm, mieszając krótsze i dłuższe zdania oraz akapity.\n\nTraktuj słowa kluczowe naturalnie, bez upychania ich na siłę. Pokazuj zarówno plusy, jak i minusy rozwiązań i wspieraj tezy przykładami z praktyki.\n\nDbaj o czytelną strukturę z nagłówkiem głównym, podtytułami i listami tam, gdzie to pomaga. Pogrubiaj tylko najważniejsze informacje.\n\nNie wspominaj o sztucznej inteligencji ani o procesie powstawania tekstu. Tekst ma brzmieć jak napisany przez człowieka. Używaj zwykłego myślnika zamiast pauzy typograficznej.",
+			'kasumi-full-ai-content-generator'
+		);
 
-		// Jeśli użytkownik nie podał nic, używamy tylko zabezpieczenia
-		$default = '';
-		
-		if ( ! empty( $base_prompt ) ) {
-			$default = $base_prompt;
-		}
-
-		// Zabezpieczenie przed wstawkami AI - WAŻNE!
-		$security_note = "WAŻNE: Piszesz konkretny tekst na konkretny temat. NIGDY nie dodawaj wstawek typu \"Wprowadzenie AI\", \"Zakończenie AI\", \"Wygenerowano przez AI\", \"Ten tekst został stworzony przez...\" ani żadnych innych wzmianek o tym, że treść została wygenerowana. Tekst ma wyglądać jak napisany przez człowieka eksperta. Zacznij od tematu, rozwiń go, zakończ naturalnie - bez żadnych meta-informacji o procesie generowania. Formatuj treść w Markdown.";
-
-		return ! empty( $default ) 
-			? $default . "\n\n" . $security_note
-			: $security_note;
+		return $fallback;
 	}
 
 	private function generate_comment_with_openai( array $context ): ?string {
@@ -241,19 +269,20 @@ class AiClient {
 		}
 
 		$user_prompt = sprintf(
-			"Streszczenie wpisu:\n%s\n\nNapisz 1-2 zdania w języku polskim pod wpisem na blogu.",
+			"Streszczenie wpisu:\n%s\n\nNapisz 1-2 zdania jako naturalny komentarz czytelnika w języku polskim. Mieszaj długość i rytm zdań, dodaj drobne potoczne wtrącenia i unikaj dosłownego powtarzania tytułu. Zero emoji i autopromocji.",
 			wp_json_encode( $context, JSON_PRETTY_PRINT )
 		);
 
 		try {
+			$model = $this->get_openai_model();
 			$response = $client->chat()->create(
 				array(
-					'model'       => $this->get_openai_model(),
-					'temperature' => 0.5,
+					'model'       => $model,
+					'temperature' => 0.9,
 					'messages'    => array(
 						array(
 							'role'    => 'system',
-							'content' => 'Tworzysz krótkie komentarze oddające entuzjazm czytelników, bez emoji.',
+							'content' => 'Jesteś aktywnym czytelnikiem dyskutującym pod artykułami. Każdy komentarz brzmi naturalnie, internetowo i inaczej niż poprzednie; nie używasz emoji ani marketingowych sloganów.',
 						),
 						array(
 							'role'    => 'user',
@@ -273,16 +302,45 @@ class AiClient {
 
 		$text = trim( (string) ( $response->choices[0]->message->content ?? '' ) );
 
-		return $text ?: null;
+		if ( '' === $text ) {
+			return null;
+		}
+
+		$usage = $this->extract_openai_usage_counts( $response );
+		$this->record_usage(
+			'comment',
+			'openai',
+			$model,
+			$usage['input_tokens'],
+			$usage['output_tokens']
+		);
+
+		return $text;
 	}
 
 	private function generate_comment_with_gemini( array $context ): ?string {
 		$prompt = sprintf(
-			"System: Tworzysz krótkie komentarze oddające entuzjazm czytelników, bez emoji.\n\nKontekst:\n%s\n\nOdpowiedz jednym komentarzem (1-2 zdania).",
+			"System: Jesteś aktywnym czytelnikiem reagującym pod artykułami. Każdy komentarz brzmi inaczej, jest naturalny, potoczny i bez emoji ani marketingowego tonu.\n\nKontekst:\n%s\n\nPolecenie: napisz 1-2 zdania jako komentarz internetowy po polsku, mieszając długość zdań i dodając luźne wtrącenia.",
 			wp_json_encode( $context, JSON_PRETTY_PRINT )
 		);
 
-		return $this->gemini_generate_text( $prompt );
+		$model = $this->get_gemini_model();
+		$text  = $this->gemini_generate_text( $prompt, $model );
+
+		if ( empty( $text ) ) {
+			return null;
+		}
+
+		$usage = $this->consume_gemini_usage();
+		$this->record_usage(
+			'comment',
+			'gemini',
+			$model,
+			$usage['input_tokens'],
+			$usage['output_tokens']
+		);
+
+		return $text;
 	}
 
 	private function generate_nickname_with_openai( array $context ): ?string {
@@ -293,7 +351,7 @@ class AiClient {
 		}
 
 		$user_prompt = sprintf(
-			"Kontekst wpisu:\n%s\n\nZaproponuj jeden unikalny pseudonim internetowy po polsku, angielsku lub ich mixie. Użyj maksymalnie 16 znaków, bez spacji i emoji. Akceptowane są cyfry na końcu.",
+			"Kontekst wpisu:\n%s\n\nZaproponuj jeden unikalny pseudonim internetowy po polsku, angielsku lub w miksie. Użyj maks. 16 znaków, bez spacji ani emoji – możesz dodać cyfry lub znaki '-', '_'. Każdy nick ma mieć inny klimat (imię+cyfry, gra słowna, tech vibes, gaming inspo).",
 			wp_json_encode( $context, JSON_PRETTY_PRINT )
 		);
 
@@ -301,11 +359,11 @@ class AiClient {
 			$response = $client->chat()->create(
 				array(
 					'model'       => $this->get_openai_model(),
-					'temperature' => 0.9,
+					'temperature' => 1.0,
 					'messages'    => array(
 						array(
 							'role'    => 'system',
-							'content' => 'Jesteś kreatorem realistycznych nicków używanych w komentarzach internetowych. Preferuj połączenia imion, technologii i cyfr (np. PixelBasia, MartaVR88, CodeNomad). Odpowiadasz wyłącznie samym nickiem.',
+							'content' => 'Jesteś kreatorem realistycznych nicków z różnych zakątków internetu. Każdy nick ma mieć inny wzorzec: imię+cyfry, hybrydy PL/EN, odniesienia do technologii, gier, muzyki lub zmyślne skróty. Zero emoji i spacji, zwracasz wyłącznie sam nick.',
 						),
 						array(
 							'role'    => 'user',
@@ -328,11 +386,12 @@ class AiClient {
 
 	private function generate_nickname_with_gemini( array $context ): ?string {
 		$prompt = sprintf(
-			"Kontekst wpisu:\n%s\n\nPrzygotuj jeden unikalny pseudonim internetowy po polsku, angielsku lub w miksie (max 16 znaków, bez spacji i emoji, cyfry na końcu są ok). Zwróć wyłącznie nick.",
+			"Kontekst wpisu:\n%s\n\nPrzygotuj jeden unikalny pseudonim internetowy (max 16 znaków, bez spacji i emoji, cyfry są opcjonalne). Mieszaj style: imiona z tech-sufiksami, gamingowe ksywki, gry słowne, skróty PL/EN. Zwróć wyłącznie sam nick.",
 			wp_json_encode( $context, JSON_PRETTY_PRINT )
 		);
 
 		$text = $this->gemini_generate_text( $prompt );
+		$this->consume_gemini_usage();
 
 		return $this->sanitize_nickname( $text );
 	}
@@ -390,7 +449,10 @@ class AiClient {
 			return array();
 		}
 
-		return $this->parse_link_suggestions( (string) ( $response->choices[0]->message->content ?? '' ) );
+		return $this->parse_link_suggestions(
+			(string) ( $response->choices[0]->message->content ?? '' ),
+			$this->get_candidate_urls( $candidates )
+		);
 	}
 
 	private function suggest_links_with_gemini( array $article, array $candidates, array $hints ): array {
@@ -409,24 +471,40 @@ class AiClient {
 		$text = $this->gemini_generate_text( $prompt );
 
 		if ( empty( $text ) ) {
+			$this->consume_gemini_usage();
 			return array();
 		}
 
-		return $this->parse_link_suggestions( $text );
+		$result = $this->parse_link_suggestions( $text, $this->get_candidate_urls( $candidates ) );
+		$this->consume_gemini_usage();
+
+		return $result;
 	}
 
 	private function build_links_prompt( array $article, array $candidates, string $hint_text ): string {
+		$rules = array_filter(
+			array(
+				$this->has_primary_candidates( $candidates )
+					? 'Linki z polem "priority":"primary" traktuj priorytetowo (wybierz maksymalnie 2, jeśli pasują do treści).'
+					: '',
+				'Jeśli kandydat ma pole "anchors", anchor musi dokładnie odpowiadać jednej z podanych fraz.',
+				$hint_text,
+				'Anchory muszą istnieć w treści i mieć 2-5 słów.',
+				'Nie wolno wymyślać nowych adresów URL – korzystaj wyłącznie z listy.',
+			)
+		);
+
 		return sprintf(
-			"Tytuł: %s\nLead: %s\nTreść:\n%s\n\nDostępne linki docelowe:\n%s\n\nWybierz maksymalnie 3 propozycje. Zwróć JSON w formacie [{\"anchor\":\"fragment tekstu\",\"url\":\"https://...\",\"title\":\"powód\"}]. Anchory muszą istnieć w treści i mieć 2-5 słów. W razie braku oczywistych dopasowań wybierz stronę główną i anchor typu 'oferta Kasumi'. %s",
+			"Tytuł: %s\nLead: %s\nTreść:\n%s\n\nDostępne linki docelowe (JSON {\"title\",\"url\",\"summary\",\"anchors\",\"priority\"}):\n%s\n\nZasady:\n- %s\n\nWybierz maksymalnie 3 propozycje. Zwróć JSON w formacie [{\"anchor\":\"fragment tekstu\",\"url\":\"https://...\",\"title\":\"powód\"}]. W razie braku oczywistych dopasowań wybierz stronę główną i anchor typu 'oferta Kasumi'.",
 			(string) ( $article['title'] ?? '' ),
 			(string) ( $article['excerpt'] ?? '' ),
 			(string) ( $article['content'] ?? '' ),
 			wp_json_encode( $candidates, JSON_PRETTY_PRINT ),
-			$hint_text
+			implode( "\n- ", $rules )
 		);
 	}
 
-	private function parse_link_suggestions( string $raw ): array {
+	private function parse_link_suggestions( string $raw, array $allowed_urls = array() ): array {
 		$raw = trim( $raw );
 		$data = json_decode( $raw, true );
 
@@ -448,6 +526,10 @@ class AiClient {
 				continue;
 			}
 
+			if ( ! empty( $allowed_urls ) && ! in_array( $url, $allowed_urls, true ) ) {
+				continue;
+			}
+
 			$suggestions[] = array(
 				'anchor' => $anchor,
 				'url'    => $url,
@@ -460,6 +542,37 @@ class AiClient {
 		}
 
 		return $suggestions;
+	}
+
+	/**
+	 * @param array<int, array<string, mixed>> $candidates
+	 */
+	private function has_primary_candidates( array $candidates ): bool {
+		foreach ( $candidates as $candidate ) {
+			if ( isset( $candidate['priority'] ) && 'primary' === $candidate['priority'] ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * @param array<int, array<string, mixed>> $candidates
+	 * @return string[]
+	 */
+	private function get_candidate_urls( array $candidates ): array {
+		$urls = array();
+
+		foreach ( $candidates as $candidate ) {
+			if ( empty( $candidate['url'] ) ) {
+				continue;
+			}
+
+			$urls[] = (string) $candidate['url'];
+		}
+
+		return array_values( array_unique( $urls ) );
 	}
 
 	private function get_openai_client(): ?OpenAIClient {
@@ -496,7 +609,7 @@ class AiClient {
 		return $this->gemini_client;
 	}
 
-	private function gemini_generate_text( string $prompt ): ?string {
+	private function gemini_generate_text( string $prompt, ?string $model_id = null ): ?string {
 		$client = $this->get_gemini_client();
 
 		if ( null === $client ) {
@@ -504,8 +617,10 @@ class AiClient {
 		}
 
 		try {
-			$model    = $client->generativeModel( model: $this->get_gemini_model() );
-			$response = $model->generateContent( $prompt );
+			$resolved_model = $model_id ?: $this->get_gemini_model();
+			$model          = $client->generativeModel( model: $resolved_model );
+			$response       = $model->generateContent( $prompt );
+			$this->last_gemini_usage = $this->extract_gemini_usage_counts( $response );
 
 			return trim( $response->text() );
 		} catch ( \Throwable $throwable ) {
@@ -533,20 +648,20 @@ class AiClient {
 	/**
 	 * @param array<string, mixed> $article
 	 */
-	public function generate_remote_image( array $article ): ?string {
+	public function generate_remote_image( array $article, bool $skip_stats = false ): ?string {
 		$provider = Options::get( 'image_remote_provider', 'openai' );
 
 		if ( 'gemini' === $provider ) {
-			return $this->generate_image_with_gemini( $article );
+			return $this->generate_image_with_gemini( $article, $skip_stats );
 		}
 
-		return $this->generate_image_with_openai( $article );
+		return $this->generate_image_with_openai( $article, $skip_stats );
 	}
 
 	/**
 	 * @param array<string, mixed> $article
 	 */
-	private function generate_image_with_openai( array $article ): ?string {
+	private function generate_image_with_openai( array $article, bool $skip_stats = false ): ?string {
 		$client = $this->get_openai_client();
 
 		if ( null === $client ) {
@@ -566,9 +681,10 @@ class AiClient {
 		);
 
 		try {
+			$model = 'gpt-image-1';
 			$response = $client->images()->create(
 				array(
-					'model'           => 'gpt-image-1',
+					'model'           => $model,
 					'prompt'          => $prompt,
 					'size'            => '1024x1024',
 					'response_format' => 'b64_json',
@@ -576,7 +692,20 @@ class AiClient {
 			);
 			$base64 = $response->data[0]->b64_json ?? '';
 
-			return $base64 ? base64_decode( $base64 ) : null;
+			$binary = $base64 ? base64_decode( $base64 ) : null;
+
+			if ( $binary ) {
+				$this->record_usage(
+					'image',
+					'openai',
+					$model,
+					0,
+					1,
+					$skip_stats
+				);
+			}
+
+			return $binary;
 		} catch ( \Throwable $throwable ) {
 			$this->logger->warning(
 				'Nie udało się wygenerować grafiki przez OpenAI Images API.',
@@ -590,7 +719,7 @@ class AiClient {
 	/**
 	 * @param array<string, mixed> $article
 	 */
-	private function generate_image_with_gemini( array $article ): ?string {
+	private function generate_image_with_gemini( array $article, bool $skip_stats = false ): ?string {
 		$client = $this->get_gemini_client();
 
 		if ( null === $client ) {
@@ -614,7 +743,8 @@ class AiClient {
 			$image_config = new \Gemini\Data\ImageConfig( aspectRatio: '16:9' );
 			$generation_config = new \Gemini\Data\GenerationConfig( imageConfig: $image_config );
 			
-			$model = $client->generativeModel( model: 'gemini-2.5-flash-image' )
+			$model_name = 'gemini-2.5-flash-image';
+			$model = $client->generativeModel( model: $model_name )
 				->withGenerationConfig( $generation_config );
 			
 			$response = $model->generateContent( $prompt );
@@ -624,7 +754,20 @@ class AiClient {
 			foreach ( $parts as $part ) {
 				if ( isset( $part->inlineData ) && isset( $part->inlineData->data ) ) {
 					$base64 = $part->inlineData->data;
-					return base64_decode( $base64 );
+					$binary = base64_decode( $base64 );
+
+					if ( $binary ) {
+						$this->record_usage(
+							'image',
+							'gemini',
+							$model_name,
+							0,
+							1,
+							$skip_stats
+						);
+					}
+
+					return $binary;
 				}
 			}
 
@@ -729,5 +872,113 @@ class AiClient {
 		}
 
 		return $models;
+	}
+
+	/**
+	 * Normalizuje usage OpenAI z dowolnego formatu.
+	 *
+	 * @param mixed $response
+	 * @return array{input_tokens:int,output_tokens:int,total_tokens:int}
+	 */
+	private function extract_openai_usage_counts( $response ): array {
+		$usage = $response->usage ?? null;
+
+		if ( null === $usage && method_exists( $response, 'toArray' ) ) {
+			$data  = $response->toArray();
+			$usage = $data['usage'] ?? null;
+		}
+
+		return $this->normalize_usage_counts( $usage );
+	}
+
+	/**
+	 * Zwraca ostatnie usage z Gemini.
+	 *
+	 * @param mixed $response
+	 * @return array{input_tokens:int,output_tokens:int,total_tokens:int}
+	 */
+	private function extract_gemini_usage_counts( $response ): array {
+		$metadata = $response->usageMetadata ?? null;
+
+		if ( null === $metadata && method_exists( $response, 'toArray' ) ) {
+			$data     = $response->toArray();
+			$metadata = $data['usageMetadata'] ?? null;
+		}
+
+		return $this->normalize_usage_counts( $metadata );
+	}
+
+	/**
+	 * Zwraca zapisane usage Gemini i resetuje cache.
+	 */
+	private function consume_gemini_usage(): array {
+		if ( null === $this->last_gemini_usage ) {
+			return array(
+				'input_tokens'  => 0,
+				'output_tokens' => 0,
+				'total_tokens'  => 0,
+			);
+		}
+
+		$usage = $this->last_gemini_usage;
+		$this->last_gemini_usage = null;
+
+		return $usage;
+	}
+
+	/**
+	 * @param mixed $usage
+	 * @return array{input_tokens:int,output_tokens:int,total_tokens:int}
+	 */
+	private function normalize_usage_counts( $usage ): array {
+		$prompt   = 0;
+		$output   = 0;
+		$total    = 0;
+
+		if ( is_object( $usage ) ) {
+			$prompt = (int) ( $usage->promptTokens ?? $usage->prompt_tokens ?? $usage->promptTokenCount ?? 0 );
+			$output = (int) ( $usage->completionTokens ?? $usage->completion_tokens ?? $usage->candidatesTokenCount ?? $usage->outputTokenCount ?? 0 );
+			$total  = (int) ( $usage->totalTokens ?? $usage->total_tokens ?? $usage->totalTokenCount ?? 0 );
+		} elseif ( is_array( $usage ) ) {
+			$prompt = (int) ( $usage['prompt_tokens'] ?? $usage['promptTokens'] ?? $usage['promptTokenCount'] ?? 0 );
+			$output = (int) ( $usage['completion_tokens'] ?? $usage['completionTokens'] ?? $usage['candidatesTokenCount'] ?? $usage['outputTokenCount'] ?? 0 );
+			$total  = (int) ( $usage['total_tokens'] ?? $usage['totalTokens'] ?? $usage['totalTokenCount'] ?? 0 );
+		}
+
+		if ( $total <= 0 ) {
+			$total = $prompt + $output;
+		}
+
+		return array(
+			'input_tokens'  => max( 0, $prompt ),
+			'output_tokens' => max( 0, $output ),
+			'total_tokens'  => max( 0, $total ),
+		);
+	}
+
+	private function record_usage( string $type, string $provider, string $model, int $input_tokens, int $output_tokens, bool $skip_stats = false, ?float $cost_override = null ): void {
+		if ( $skip_stats ) {
+			return;
+		}
+
+		$input_tokens  = max( 0, $input_tokens );
+		$output_tokens = max( 0, $output_tokens );
+		$total_tokens  = max( 0, $input_tokens + $output_tokens );
+
+		$data = array(
+			'input_tokens'  => $input_tokens,
+			'output_tokens' => $output_tokens,
+			'total_tokens'  => $total_tokens,
+			'model'         => $model,
+		);
+
+		$data['cost'] = $cost_override ?? StatsTracker::calculate_cost(
+			$provider,
+			$model,
+			$input_tokens,
+			$output_tokens
+		);
+
+		StatsTracker::record( $type, $provider, $data );
 	}
 }

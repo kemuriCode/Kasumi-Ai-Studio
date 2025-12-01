@@ -14,6 +14,7 @@ use function __;
 use function add_action;
 use function current_user_can;
 use function register_rest_route;
+use function trim;
 
 class SchedulesController {
 	private const REST_NAMESPACE = 'kasumi/v1';
@@ -89,6 +90,12 @@ class SchedulesController {
 
 	public function create_schedule( WP_REST_Request $request ): WP_REST_Response {
 		$data = $this->extract_payload( $request );
+		$error = $this->validate_required_payload( $data, false );
+
+		if ( $error ) {
+			return $error;
+		}
+
 		$item = $this->schedule_service->create( $data );
 
 		return new WP_REST_Response( $item, 201 );
@@ -102,7 +109,14 @@ class SchedulesController {
 			return new WP_REST_Response( new WP_Error( 'kag_schedule_not_found', __( 'Nie znaleziono zadania.', 'kasumi-full-ai-content-generator' ), array( 'status' => 404 ) ) );
 		}
 
-		$item = $this->schedule_service->update( $id, $this->extract_payload( $request, true ) );
+		$payload = $this->extract_payload( $request, true );
+		$error   = $this->validate_required_payload( $payload, true );
+
+		if ( $error ) {
+			return $error;
+		}
+
+		$item = $this->schedule_service->update( $id, $payload );
 
 		return new WP_REST_Response( $item );
 	}
@@ -166,5 +180,44 @@ class SchedulesController {
 
 		return $data;
 	}
-}
 
+	private function validate_required_payload( array $payload, bool $partial = false ): ?WP_Error {
+		if ( ! $partial || array_key_exists( 'post_title', $payload ) ) {
+			$title = trim( (string) ( $payload['post_title'] ?? '' ) );
+
+			if ( '' === $title ) {
+				return new WP_Error(
+					'kag_schedule_missing_title',
+					__( 'Tytuł zadania jest wymagany.', 'kasumi-full-ai-content-generator' ),
+					array( 'status' => 400 )
+				);
+			}
+		}
+
+		if ( ! $partial || array_key_exists( 'author_id', $payload ) ) {
+			$author = (int) ( $payload['author_id'] ?? 0 );
+
+			if ( $author <= 0 ) {
+				return new WP_Error(
+					'kag_schedule_missing_author',
+					__( 'Wybierz autora zadania.', 'kasumi-full-ai-content-generator' ),
+					array( 'status' => 400 )
+				);
+			}
+		}
+
+		if ( ! $partial || array_key_exists( 'publish_at', $payload ) ) {
+			$date = trim( (string) ( $payload['publish_at'] ?? '' ) );
+
+			if ( '' === $date ) {
+				return new WP_Error(
+					'kag_schedule_missing_date',
+					__( 'Ustaw dokładną datę publikacji.', 'kasumi-full-ai-content-generator' ),
+					array( 'status' => 400 )
+				);
+			}
+		}
+
+		return null;
+	}
+}

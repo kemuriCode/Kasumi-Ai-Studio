@@ -12,9 +12,12 @@ use function __;
 use function array_filter;
 use function array_map;
 use function array_merge;
+use function array_rand;
+use function array_values;
 use function current_time;
 use function explode;
 use function get_date_from_gmt;
+use function get_user_by;
 use function gmdate;
 use function hash;
 use function has_blocks;
@@ -162,7 +165,7 @@ class PostGenerator {
 			'post_name'    => sanitize_title( (string) ( $article['slug'] ?? $title ) ),
 			'post_category' => $this->resolve_category( $overrides ),
 			'post_type'    => (string) ( $overrides['post_type'] ?? 'post' ),
-			'post_author'  => isset( $overrides['author_id'] ) ? (int) $overrides['author_id'] : 0,
+			'post_author'  => $this->resolve_default_author_id( $overrides ),
 		);
 
 		if ( ! empty( $overrides['publish_at'] ) ) {
@@ -202,6 +205,54 @@ class PostGenerator {
 		);
 
 		return (int) $result;
+	}
+
+	private function resolve_default_author_id( array $overrides ): int {
+		if ( isset( $overrides['author_id'] ) ) {
+			$requested = (int) $overrides['author_id'];
+
+			return $this->is_valid_author_id( $requested ) ? $requested : 0;
+		}
+
+		$mode = (string) Options::get( 'default_author_mode', 'none' );
+
+		if ( 'fixed' === $mode ) {
+			$author_id = (int) Options::get( 'default_author_id', 0 );
+
+			return $this->is_valid_author_id( $author_id ) ? $author_id : 0;
+		}
+
+		if ( 'random_list' === $mode ) {
+			$pool = Options::get( 'default_author_pool', array() );
+
+			if ( is_array( $pool ) ) {
+				$valid_pool = array_values(
+					array_filter(
+						array_map(
+							function ( $id ) {
+								$author_id = (int) $id;
+
+								return $this->is_valid_author_id( $author_id ) ? $author_id : null;
+							},
+							$pool
+						),
+						static fn( $author_id ) => ! empty( $author_id )
+					)
+				);
+
+				if ( ! empty( $valid_pool ) ) {
+					$random_key = array_rand( $valid_pool );
+
+					return (int) $valid_pool[ $random_key ];
+				}
+			}
+		}
+
+		return 0;
+	}
+
+	private function is_valid_author_id( int $author_id ): bool {
+		return $author_id > 0 && false !== get_user_by( 'id', $author_id );
 	}
 
 	private function get_link_keywords(): array {

@@ -4,7 +4,7 @@
  * Plugin URI: https://wordpress.org/plugins/kasumi-full-ai-content-generator
  * Description: Nowoczesna wtyczka AI z pełnym wsparciem dla najnowszych modeli GPT-5.1, GPT-4o (OpenAI) oraz Gemini 3 (Google). Obsługuje także starsze modele (GPT-4.1, GPT-4o-mini, Gemini 2.0 Flash) - wybierz model odpowiedni dla Ciebie!
  * Author: Marcin Dymek (KemuriCodes)
- * Version: 0.1.5
+ * Version: 0.1.6
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: kasumi-full-ai-content-generator
@@ -18,10 +18,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KASUMI_AI_VERSION', '0.1.5' );
+define( 'KASUMI_AI_VERSION', '0.1.6' );
 define( 'KASUMI_AI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KASUMI_AI_URL', plugin_dir_url( __FILE__ ) );
 define( 'KASUMI_AI_DB_VERSION', '2024112701' );
+
+add_action(
+	'init',
+	static function (): void {
+		load_plugin_textdomain(
+			'kasumi-full-ai-content-generator',
+			false,
+			dirname( plugin_basename( __FILE__ ) ) . '/languages'
+		);
+	}
+);
 
 if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
 	add_action(
@@ -55,6 +66,7 @@ if ( ! file_exists( $kasumi_autoload ) ) {
 
 require_once $kasumi_autoload;
 
+use Kasumi\AIGenerator\Admin\SettingsPage;
 use Kasumi\AIGenerator\Installer\DatabaseMigrator;
 use Kasumi\AIGenerator\Module;
 use Kasumi\AIGenerator\Options;
@@ -130,7 +142,7 @@ add_filter(
 
 		$settings_link = sprintf(
 			'<a href="%s">%s</a>',
-			esc_url( admin_url( 'options-general.php?page=kasumi-ai-generator-ai-content' ) ),
+			esc_url( admin_url( 'options-general.php?page=' . SettingsPage::get_page_slug() ) ),
 			esc_html__( 'Ustawienia', 'kasumi-full-ai-content-generator' )
 		);
 

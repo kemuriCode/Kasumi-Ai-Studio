@@ -9,14 +9,20 @@ use Kasumi\AIGenerator\Options;
 use Kasumi\AIGenerator\Status\StatusStore;
 
 use function array_rand;
+use function array_unique;
+use function array_values;
 use function current_time;
+use function get_comments;
 use function get_post;
 use function get_post_meta;
 use function get_posts;
 use function home_url;
 use function is_array;
+use function mb_strtolower;
+use function preg_replace;
 use function sanitize_email;
 use function sanitize_title;
+use function similar_text;
 use function time;
 use function trim;
 use function update_post_meta;
@@ -34,6 +40,7 @@ use const PHP_URL_HOST;
 class CommentGenerator {
 	private const META_PLAN = '_kasumi_ai_comment_plan';
 	private const META_CONTEXT = '_kasumi_ai_comment_context';
+	private array $recent_comment_cache = array();
 
 	public function __construct(
 		private AiClient $ai_client,
@@ -134,7 +141,7 @@ class CommentGenerator {
 					continue;
 				}
 
-				$comment_text = $this->ai_client->generate_comment( $context );
+				$comment_text = $this->generate_unique_comment_for_post( (int) $post_id, $context );
 
 				if ( empty( $comment_text ) ) {
 					continue;
@@ -185,7 +192,7 @@ class CommentGenerator {
 	}
 
 	private function insert_comment( int $post_id, string $content, array $context ): ?int {
-		$author_name   = $this->resolve_comment_author( $context );
+		$author_name   = $this->resolve_comment_author( $post_id, $context );
 		$host          = wp_parse_url( home_url(), PHP_URL_HOST ) ?: 'example.com';
 		$email         = sanitize_email(
 			sanitize_title( $author_name ) . '+' . wp_generate_uuid4() . '@' . $host
@@ -203,6 +210,7 @@ class CommentGenerator {
 		$comment_id = wp_insert_comment( $comment_data );
 
 		if ( $comment_id ) {
+			unset( $this->recent_comment_cache[ $post_id ] );
 			$this->logger->info(
 				'Dodano komentarz AI.',
 				array(
@@ -255,11 +263,159 @@ class CommentGenerator {
 	/**
 	 * @param array<string, mixed> $context
 	 */
-	private function resolve_comment_author( array $context ): string {
-		$nickname = $this->ai_client->generate_nickname( $context );
+	private function generate_unique_comment_for_post( int $post_id, array $context ): ?string {
+		for ( $attempt = 0; $attempt < 3; $attempt++ ) {
+			$comment_text = $this->ai_client->generate_comment( $context );
+
+			if ( empty( $comment_text ) ) {
+				continue;
+			}
+
+			if ( ! $this->looks_like_duplicate_comment( $post_id, $comment_text ) ) {
+				return $comment_text;
+			}
+		}
+
+		return null;
+	}
+
+	private function looks_like_duplicate_comment( int $post_id, string $content ): bool {
+		$needle = $this->normalize_comment_text( $content );
+
+		if ( '' === $needle ) {
+			return true;
+		}
+
+		foreach ( $this->get_recent_comments( $post_id ) as $comment ) {
+			$existing = $this->normalize_comment_text( (string) $comment->comment_content );
+
+			if ( '' === $existing ) {
+				continue;
+			}
+
+			if ( $existing === $needle ) {
+				return true;
+			}
+
+			similar_text( $existing, $needle, $similarity );
+
+			if ( $similarity >= 88 ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private function normalize_comment_text( string $content ): string {
+		$trimmed = trim( preg_replace( '/\s+/u', ' ', $content ) ?? $content );
+
+		return mb_strtolower( $trimmed );
+	}
+
+	/**
+	 * @return \WP_Comment[]
+	 */
+	private function get_recent_comments( int $post_id, int $limit = 12 ): array {
+		if ( isset( $this->recent_comment_cache[ $post_id ] ) ) {
+			return $this->recent_comment_cache[ $post_id ];
+		}
+
+		$comments = get_comments(
+			array(
+				'post_id' => $post_id,
+				'number'  => $limit,
+				'status'  => 'all',
+				'orderby' => 'comment_date_gmt',
+				'order'   => 'DESC',
+				'type'    => 'comment',
+			)
+		);
+
+		$this->recent_comment_cache[ $post_id ] = $comments;
+
+		return $comments;
+	}
+
+	/**
+	 * @return string[]
+	 */
+	private function get_recent_comment_authors( int $post_id ): array {
+		$authors = array();
+
+		foreach ( $this->get_recent_comments( $post_id, 15 ) as $comment ) {
+			$name = trim( (string) $comment->comment_author );
+
+			if ( '' === $name ) {
+				continue;
+			}
+
+			$authors[] = $name;
+		}
+
+		return array_values( array_unique( $authors ) );
+	}
+
+	/**
+	 * @param array<string, mixed> $context
+	 * @param string[]             $recent_authors
+	 */
+	private function generate_unique_nickname( array $context, array $recent_authors ): ?string {
+		for ( $attempt = 0; $attempt < 3; $attempt++ ) {
+			$nickname = $this->ai_client->generate_nickname( $context );
+
+			if ( empty( $nickname ) ) {
+				continue;
+			}
+
+			if ( $this->is_nickname_unique_against_list( $recent_authors, $nickname ) ) {
+				return $nickname;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * @param string[] $recent_authors
+	 */
+	private function is_nickname_unique_against_list( array $recent_authors, string $nickname ): bool {
+		$needle = $this->normalize_nickname( $nickname );
+
+		if ( '' === $needle ) {
+			return false;
+		}
+
+		foreach ( $recent_authors as $author ) {
+			if ( $this->normalize_nickname( $author ) === $needle ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private function normalize_nickname( string $nickname ): string {
+		return mb_strtolower( trim( $nickname ) );
+	}
+
+	/**
+	 * @param array<string, mixed> $context
+	 */
+	private function resolve_comment_author( int $post_id, array $context ): string {
+		$recent_authors = $this->get_recent_comment_authors( $post_id );
+		$nickname       = $this->generate_unique_nickname( $context, $recent_authors );
 
 		if ( $nickname ) {
 			return $nickname;
+		}
+
+		for ( $attempt = 0; $attempt < 3; $attempt++ ) {
+			$fallback = $this->build_fallback_nickname();
+
+			if ( $this->is_nickname_unique_against_list( $recent_authors, $fallback ) ) {
+				return $fallback;
+			}
 		}
 
 		return $this->build_fallback_nickname();

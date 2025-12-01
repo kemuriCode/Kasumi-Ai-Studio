@@ -98,9 +98,10 @@ final class Module {
 		$this->models_controller->register();
 		$this->settings_controller->register();
 
-		// Rejestruj tylko jeśli wtyczka jest włączona
+		// Harmonogram ma monitorować stan nawet gdy automatyzacja jest czasowo wyłączona
+		$this->scheduler->register();
+
 		if ( Options::get( 'plugin_enabled', true ) ) {
-			$this->scheduler->register();
 			$this->schedules_controller->register();
 		}
 	}

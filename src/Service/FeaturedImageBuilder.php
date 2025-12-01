@@ -54,6 +54,7 @@ use function mb_strtoupper;
 use function ob_get_clean;
 use function ob_start;
 use function preg_split;
+use function round;
 use function strlen;
 use function set_post_thumbnail;
 use function sprintf;
@@ -146,7 +147,7 @@ class FeaturedImageBuilder {
 	 * @param array<string, mixed> $article
 	 */
 	public function build( int $post_id, array $article ): ?int {
-		$blob = $this->generate_image_blob( $article, true );
+		$blob = $this->generate_image_blob( $article, true, false );
 
 		if ( ! $blob ) {
 			return null;
@@ -159,7 +160,7 @@ class FeaturedImageBuilder {
 	 * @param array<string, mixed> $article
 	 */
 	public function preview( array $article ): ?string {
-		$blob = $this->generate_image_blob( $article, false );
+		$blob = $this->generate_image_blob( $article, false, true );
 
 		if ( ! $blob ) {
 			return null;
@@ -171,7 +172,7 @@ class FeaturedImageBuilder {
 	/**
 	 * @param array<string, mixed> $article
 	 */
-	private function generate_image_blob( array $article, bool $respect_toggle = true ): ?string {
+	private function generate_image_blob( array $article, bool $respect_toggle = true, bool $skip_stats = false ): ?string {
 		if ( $respect_toggle && ! Options::get( 'enable_featured_images' ) ) {
 			return null;
 		}
@@ -179,15 +180,15 @@ class FeaturedImageBuilder {
 		$mode = (string) Options::get( 'image_generation_mode', 'server' );
 
 		return 'remote' === $mode
-			? $this->generate_remote_image( $article )
+			? $this->generate_remote_image( $article, $skip_stats )
 			: $this->generate_server_image( $article );
 	}
 
 	/**
 	 * @param array<string, mixed> $article
 	 */
-	private function generate_remote_image( array $article ): ?string {
-		$binary = $this->ai_client->generate_remote_image( $article );
+	private function generate_remote_image( array $article, bool $skip_stats ): ?string {
+		$binary = $this->ai_client->generate_remote_image( $article, $skip_stats );
 
 		if ( empty( $binary ) ) {
 			$this->logger->warning( 'OpenAI Images API nie zwróciło grafiki.' );
@@ -477,11 +478,11 @@ class FeaturedImageBuilder {
 		);
 
 		foreach ( $lines as $line ) {
-			$lineWidth = 0;
+			$metrics   = $imagick->queryFontMetrics( $draw, $line );
+			$lineWidth = (int) ceil( $metrics['textWidth'] ?? 0 );
 
-			if ( $fontPath ) {
-				$metrics   = $imagick->queryFontMetrics( $draw, $line );
-				$lineWidth = (int) ceil( $metrics['textWidth'] ?? 0 );
+			if ( $lineWidth <= 0 ) {
+				$lineWidth = $this->estimate_line_width_from_font_size( $line, $fontSize );
 			}
 
 			$x = $this->resolve_horizontal_start_for_imagick(
@@ -648,24 +649,46 @@ class FeaturedImageBuilder {
 			return $this->resolve_horizontal_start_from_width( $alignment, $canvasWidth, $lineWidth );
 		}
 
-		$approxWidth = (int) ( mb_strlen( $line ) * ( $fontSize / 1.8 ) );
+		$approxWidth = $this->estimate_line_width_from_font_size( $line, $fontSize );
 
 		return $this->resolve_horizontal_start_from_width( $alignment, $canvasWidth, $approxWidth );
 	}
 
+	/**
+	 * Horizontal alignment keeps text inside the safe zone (canvas width minus TEXT_MARGIN*2) and
+	 * ensures the "center" option keeps equal padding on both sides whenever possible.
+	 */
 	private function resolve_horizontal_start_from_width( string $alignment, int $canvasWidth, int $lineWidth ): int {
+		$lineWidth     = max( 0, $lineWidth );
+		$drawableWidth = max( 0, $canvasWidth - ( self::TEXT_MARGIN * 2 ) );
+		$maxStart      = max( self::TEXT_MARGIN, $canvasWidth - self::TEXT_MARGIN - $lineWidth );
+
 		switch ( $alignment ) {
 			case 'right':
-				return max( self::TEXT_MARGIN, $canvasWidth - self::TEXT_MARGIN - $lineWidth );
+				return $maxStart;
 			case 'center':
-				return (int) max(
-					self::TEXT_MARGIN,
-					( $canvasWidth - $lineWidth ) / 2
+				if ( $drawableWidth <= 0 ) {
+					return (int) max( 0, ( $canvasWidth - $lineWidth ) / 2 );
+				}
+
+				if ( $lineWidth >= $drawableWidth ) {
+					return $maxStart;
+				}
+
+				return (int) round(
+					self::TEXT_MARGIN + ( $drawableWidth - $lineWidth ) / 2
 				);
 			case 'left':
 			default:
 				return self::TEXT_MARGIN;
 		}
+	}
+
+	private function estimate_line_width_from_font_size( string $line, int $fontSize ): int {
+		$length       = max( 1, mb_strlen( $line ) );
+		$characterWid = max( 8, (int) round( $fontSize * 0.56 ) );
+
+		return $length * $characterWid;
 	}
 
 	/**

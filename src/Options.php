@@ -4,8 +4,18 @@ declare(strict_types=1);
 
 namespace Kasumi\AIGenerator;
 
+use function __;
 use function absint;
+use function array_filter;
+use function array_map;
+use function array_unique;
+use function array_slice;
+use function explode;
 use function get_option;
+use function get_user_by;
+use function is_array;
+use function is_string;
+use function esc_url_raw;
 use function max;
 use function min;
 use function sanitize_hex_color_no_hash;
@@ -54,14 +64,21 @@ final class Options {
 			'gemini_api_key'         => '',
 			'gemini_model'           => 'gemini-2.0-flash',
 			'pixabay_api_key'         => '',
-			'system_prompt'           => '',
+			'system_prompt'           => __(
+				"Jestem doświadczonym copywriterem i specjalistą od content marketingu. Tworzę teksty techniczne, marketingowe i kreatywne tak, aby były merytoryczne, zrozumiałe i użyteczne dla czytelnika.\n\nPisz w pierwszej osobie, w tonie profesjonalnym, ale spokojnym i przystępnym. Unikaj przesadnego entuzjazmu i nachalnego języka sprzedażowego. Zadbaj o naturalny rytm: mieszaj krótsze i dłuższe zdania, a akapity buduj tak, aby prowadziły czytelnika krok po kroku przez temat.\n\nTraktuj słowa kluczowe jak naturalny element wypowiedzi, nie upychaj ich na siłę. Pokazuj zarówno plusy, jak i minusy rozwiązań. Wspieraj tezy konkretnymi przykładami oraz odwołaniami do praktyki.\n\nDbaj o logiczną strukturę z nagłówkiem głównym i sekcjami z podtytułami, stosuj listy tam, gdzie poprawiają czytelność i pogrubiaj tylko najważniejsze informacje.\n\nUnikaj wstawek o sztucznej inteligencji i metakomentarzy o tym, jak tekst powstał. Tekst ma brzmieć jak napisany przez człowieka. Nie używaj pauz typograficznych, stosuj zwykły myślnik.",
+				'kasumi-full-ai-content-generator'
+			),
 			'topic_strategy'          => '',
 			'target_category'         => '',
+			'default_author_mode'     => 'none',
+			'default_author_id'       => 0,
+			'default_author_pool'     => array(),
 			'default_post_status'     => 'draft',
 			'schedule_interval_hours' => 84,
 			'word_count_min'          => 600,
 			'word_count_max'          => 1200,
 			'enable_internal_linking' => true,
+			'primary_links'           => array(),
 			'enable_logging'          => true,
 			'enable_featured_images'  => true,
 			'image_generation_mode'   => 'server',
@@ -117,6 +134,12 @@ final class Options {
 		$sanitized['system_prompt'] = sanitize_text_field( $values['system_prompt'] ?? '' );
 		$sanitized['topic_strategy'] = sanitize_text_field( $values['topic_strategy'] ?? $defaults['topic_strategy'] );
 		$sanitized['target_category'] = sanitize_text_field( $values['target_category'] ?? '' );
+		$author_mode = $values['default_author_mode'] ?? $defaults['default_author_mode'];
+		$sanitized['default_author_mode'] = in_array( $author_mode, array( 'none', 'fixed', 'random_list' ), true )
+			? $author_mode
+			: $defaults['default_author_mode'];
+		$sanitized['default_author_id'] = self::sanitize_author_id_value( $values['default_author_id'] ?? 0 );
+		$sanitized['default_author_pool'] = self::sanitize_author_pool( $values['default_author_pool'] ?? array() );
 		$sanitized['default_post_status'] = in_array( $values['default_post_status'] ?? '', array( 'draft', 'publish' ), true ) ? $values['default_post_status'] : $defaults['default_post_status'];
 		$sanitized['schedule_interval_hours'] = max( 72, absint( $values['schedule_interval_hours'] ?? $defaults['schedule_interval_hours'] ) );
 		$sanitized['word_count_min'] = max( 200, absint( $values['word_count_min'] ?? $defaults['word_count_min'] ) );
@@ -125,6 +148,7 @@ final class Options {
 			absint( $values['word_count_max'] ?? $defaults['word_count_max'] )
 		);
 		$sanitized['enable_internal_linking'] = ! empty( $values['enable_internal_linking'] );
+		$sanitized['primary_links']           = self::sanitize_primary_links( $values['primary_links'] ?? array() );
 		$sanitized['enable_logging'] = ! empty( $values['enable_logging'] );
 		$sanitized['enable_featured_images'] = ! empty( $values['enable_featured_images'] );
 		$image_mode = $values['image_generation_mode'] ?? $defaults['image_generation_mode'];
@@ -182,6 +206,86 @@ final class Options {
 		$sanitized['delete_tables_on_deactivation'] = ! empty( $values['delete_tables_on_deactivation'] );
 
 		return $sanitized;
+	}
+
+	private static function sanitize_author_id_value( $value ): int {
+		$id = absint( $value );
+
+		if ( $id <= 0 ) {
+			return 0;
+		}
+
+		return get_user_by( 'id', $id ) ? $id : 0;
+	}
+
+	private static function sanitize_author_pool( $value ): array {
+		$pool = array();
+
+		if ( is_string( $value ) ) {
+			$value = array_filter(
+				array_map( 'trim', explode( ',', $value ) ),
+				static fn( $chunk ) => '' !== $chunk
+			);
+		}
+
+		if ( is_array( $value ) ) {
+			foreach ( $value as $item ) {
+				$id = self::sanitize_author_id_value( $item );
+
+				if ( $id > 0 ) {
+					$pool[] = $id;
+				}
+			}
+		}
+
+		return array_values( array_unique( $pool ) );
+	}
+
+	private static function sanitize_primary_links( $value ): array {
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$links = array();
+
+		foreach ( $value as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$url = esc_url_raw( trim( (string) ( $entry['url'] ?? '' ) ) );
+
+			if ( '' === $url ) {
+				continue;
+			}
+
+			$anchors = array();
+			$raw     = $entry['anchors'] ?? array();
+
+			if ( is_string( $raw ) ) {
+				$raw = array_filter(
+					array_map( 'trim', explode( ',', $raw ) ),
+					static fn( $chunk ) => '' !== $chunk
+				);
+			}
+
+			if ( is_array( $raw ) ) {
+				foreach ( $raw as $anchor ) {
+					$anchor = sanitize_text_field( $anchor );
+
+					if ( '' !== $anchor ) {
+						$anchors[] = $anchor;
+					}
+				}
+			}
+
+			$links[] = array(
+				'url'     => $url,
+				'anchors' => array_values( array_unique( $anchors ) ),
+			);
+		}
+
+		return array_slice( $links, 0, 10 );
 	}
 
 	/**

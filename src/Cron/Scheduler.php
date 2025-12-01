@@ -17,7 +17,9 @@ use function array_rand;
 use function ceil;
 use function max;
 use function min;
+use function trim;
 use function time;
+use function wp_clear_scheduled_hook;
 use function wp_next_scheduled;
 use function wp_rand;
 use function wp_schedule_event;
@@ -50,9 +52,21 @@ class Scheduler {
 	}
 
 	public function ensure_schedules(): void {
-		if ( ! Options::get( 'plugin_enabled', true ) ) {
+		$block_reason = $this->automation_block_reason();
+
+		if ( $block_reason ) {
+			$this->clear_scheduled_events();
+			StatusStore::merge(
+				array(
+					'next_post_run'     => null,
+					'automation_notice' => $block_reason,
+				)
+			);
+
 			return;
 		}
+
+		StatusStore::merge( array( 'automation_notice' => '' ) );
 
 		if ( ! wp_next_scheduled( self::POST_HOOK ) ) {
 			$this->schedule_next_post();
@@ -68,7 +82,7 @@ class Scheduler {
 	}
 
 	public function handle_post_generation(): void {
-		if ( ! Options::get( 'plugin_enabled', true ) ) {
+		if ( $this->automation_block_reason() ) {
 			return;
 		}
 
@@ -77,7 +91,7 @@ class Scheduler {
 	}
 
 	public function handle_comment_generation(): void {
-		if ( ! Options::get( 'plugin_enabled', true ) ) {
+		if ( $this->automation_block_reason() ) {
 			return;
 		}
 
@@ -85,7 +99,7 @@ class Scheduler {
 	}
 
 	public function handle_manual_schedules(): void {
-		if ( ! Options::get( 'plugin_enabled', true ) ) {
+		if ( $this->automation_block_reason() ) {
 			return;
 		}
 
@@ -148,5 +162,35 @@ class Scheduler {
 			'hour'   => $hours[ array_rand( $hours ) ],
 			'minute' => $minutes[ array_rand( $minutes ) ],
 		);
+	}
+
+	private function automation_block_reason(): ?string {
+		if ( ! Options::get( 'plugin_enabled', true ) ) {
+			return __( 'Automatyzacja jest wyłączona – włącz moduł Kasumi w sekcji „Pozostałe”.', 'kasumi-full-ai-content-generator' );
+		}
+
+		$provider   = (string) Options::get( 'ai_provider', 'openai' );
+		$has_openai = '' !== trim( (string) Options::get( 'openai_api_key', '' ) );
+		$has_gemini = '' !== trim( (string) Options::get( 'gemini_api_key', '' ) );
+
+		if ( 'openai' === $provider && ! $has_openai ) {
+			return __( 'Dodaj klucz API OpenAI, aby uruchomić automatyczne generowanie.', 'kasumi-full-ai-content-generator' );
+		}
+
+		if ( 'gemini' === $provider && ! $has_gemini ) {
+			return __( 'Dodaj klucz API Gemini, aby uruchomić automatyczne generowanie.', 'kasumi-full-ai-content-generator' );
+		}
+
+		if ( 'auto' === $provider && ! $has_openai && ! $has_gemini ) {
+			return __( 'Dodaj przynajmniej jeden klucz API (OpenAI lub Gemini), aby uruchomić automat.', 'kasumi-full-ai-content-generator' );
+		}
+
+		return null;
+	}
+
+	private function clear_scheduled_events(): void {
+		wp_clear_scheduled_hook( self::POST_HOOK );
+		wp_clear_scheduled_hook( self::COMMENT_HOOK );
+		wp_clear_scheduled_hook( self::MANUAL_HOOK );
 	}
 }

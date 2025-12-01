@@ -4,7 +4,7 @@ Donate link: https://kemuri.codes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.1.5
+Stable tag: 0.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: ai, openai, gemini, pixabay, wp-cron
@@ -100,6 +100,13 @@ The Diagnostics tab and admin notices alert you if PHP < 8.1 or extensions like 
 5. Diagnostics tab showing PHP version and required extensions.
 
 == Changelog ==
+
+= 0.1.6 =
+* Dodano presety proporcji obrazka (16:9, 4:3, 1:1, 2:3) z automatycznym uzupełnianiem pól szerokości/wysokości oraz poprawionym UI na urządzeniach mobilnych.
+* Panel harmonogramu zyskał responsywne filtry i bardziej neutralne placeholdery dla tytułu.
+* Scheduler automatycznie blokuje WP-Cron, gdy brakuje kluczy API lub moduł jest wyłączony, i prezentuje ostrzeżenie w karcie „Status modułu AI”.
+* Wprowadzono rejestrowanie użycia tokenów/kosztów dla OpenAI i Gemini bezpośrednio w `StatsTracker`, aby statystyki odzwierciedlały realne zużycie.
+* Naprawiono wcześniejsze ostrzeżenia dot. `load_plugin_textdomain` i dodano jasny komunikat o stanie automatyzacji.
 
 = 0.1.5 =
 * Poprawiono zgodność wersji Stable tag w readme.txt

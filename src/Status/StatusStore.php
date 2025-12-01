@@ -26,6 +26,7 @@ final class StatusStore {
 				'last_error'          => '',
 				'last_comment_time'   => null,
 				'queued_comment_jobs' => 0,
+				'automation_notice'   => '',
 			)
 		);
 	}

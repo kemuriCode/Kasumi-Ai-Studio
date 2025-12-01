@@ -115,6 +115,7 @@ class PreviewController {
 			array(
 				'user_prompt'   => $prompt,
 				'system_prompt' => Options::get( 'system_prompt' ),
+				'skip_stats'    => true,
 			)
 		);
 
