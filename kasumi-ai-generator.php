@@ -23,17 +23,6 @@ define( 'KASUMI_AI_PATH', plugin_dir_path( __FILE__ ) );
 define( 'KASUMI_AI_URL', plugin_dir_url( __FILE__ ) );
 define( 'KASUMI_AI_DB_VERSION', '2024112701' );
 
-add_action(
-	'init',
-	static function (): void {
-		load_plugin_textdomain(
-			'kasumi-full-ai-content-generator',
-			false,
-			dirname( plugin_basename( __FILE__ ) ) . '/languages'
-		);
-	}
-);
-
 if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
 	add_action(
 		'admin_notices',

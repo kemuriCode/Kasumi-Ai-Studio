@@ -40,6 +40,7 @@ rsync -av \
   --exclude='.env.*' \
   --exclude='.idea' \
   --exclude='.vscode' \
+  --exclude='*~' \
   --exclude='*.swp' \
   --exclude='*.swo' \
   --exclude='.DS_Store' \
@@ -70,4 +71,3 @@ rm -rf "${TEMP_DIR}"
 
 echo "✅ Gotowe! Paczka utworzona: ${PLUGIN_DIR}/${ZIP_NAME}"
 echo "📊 Rozmiar pliku: $(du -h "${PLUGIN_DIR}/${ZIP_NAME}" | cut -f1)"
-
