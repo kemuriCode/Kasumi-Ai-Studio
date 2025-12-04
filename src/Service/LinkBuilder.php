@@ -9,7 +9,6 @@ use function esc_url;
 use function preg_match;
 use function preg_quote;
 use function preg_replace;
-use function sprintf;
 use function trim;
 
 /**
@@ -39,12 +38,6 @@ class LinkBuilder {
 				$content     = preg_replace( $pattern, $replacement, $content, 1 ) ?? $content;
 				continue;
 			}
-
-			$content .= sprintf(
-				'<p><a href="%s">%s</a></p>',
-				esc_url( $url ),
-				esc_html( $anchor )
-			);
 		}
 
 		return $content;

@@ -9,8 +9,6 @@ use Kasumi\AIGenerator\Module;
 use Kasumi\AIGenerator\Options;
 use Kasumi\AIGenerator\Status\StatusStore;
 use Kasumi\AIGenerator\Status\StatsTracker;
-use ValueError;
-
 use function __;
 use function add_query_arg;
 use function add_settings_field;
@@ -528,37 +526,6 @@ class SettingsPage
             str_pad(dechex((int) $r), 2, "0", STR_PAD_LEFT) .
             str_pad(dechex((int) $g), 2, "0", STR_PAD_LEFT) .
             str_pad(dechex((int) $b), 2, "0", STR_PAD_LEFT);
-    }
-
-    /**
-     * Safely formats localized strings even if a translation defines invalid placeholders.
-     *
-     * @param string $template  Translation string that may include placeholders.
-     * @param array<int, string> $arguments Arguments passed to vsprintf.
-     * @param string $fallback  Fallback template with known-good placeholders.
-     */
-    private function safe_format_string(
-        string $template,
-        array $arguments,
-        string $fallback,
-    ): string {
-        try {
-            return vsprintf($template, $arguments);
-        } catch (ValueError $exception) {
-            try {
-                return vsprintf($fallback, $arguments);
-            } catch (ValueError $inner_exception) {
-                return implode(
-                    " | ",
-                    array_map(
-                        static function ($value): string {
-                            return (string) $value;
-                        },
-                        $arguments,
-                    ),
-                );
-            }
-        }
     }
 
     private function register_api_section(): void
@@ -2966,19 +2933,14 @@ class SettingsPage
 				<p><?php echo esc_html(number_format_i18n($total_tokens)); ?></p>
 					<p>
 						<?php
-	        $tokens_summary_text = $this->safe_format_string(
-	            __(
-	                /* translators: 1: total input tokens, 2: total output tokens. */
-	                "Wejście: %1$s | Wyjście: %2$s",
-	                "kasumi-ai-generator",
-	            ),
-	            [
-	                number_format_i18n($total_input_tokens),
-	                number_format_i18n($total_output_tokens),
-	            ],
-	            "Wejście: %1\$s | Wyjście: %2\$s",
-	        );
-	        echo esc_html($tokens_summary_text);
+        $tokens_summary_text = sprintf(
+            "%1\$s %2\$s | %3\$s %4\$s",
+            esc_html__("Wejście:", "kasumi-ai-generator"),
+            number_format_i18n($total_input_tokens),
+            esc_html__("Wyjście:", "kasumi-ai-generator"),
+            number_format_i18n($total_output_tokens),
+        );
+        echo esc_html($tokens_summary_text);
 	        ?>
 					</p>
 			</div>

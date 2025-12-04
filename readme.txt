@@ -1,4 +1,4 @@
-=== Kasumi – Full AI Content Generator ===
+=== KasumiAI - Full AI Content Generator ===
 Contributors: kemuricodes
 Donate link: https://kemuri.codes
 Requires at least: 6.0
@@ -104,6 +104,7 @@ The Diagnostics tab and admin notices alert you if PHP < 8.1 or extensions like 
 = 0.1.8.2 =
 * AJAX-owy zapis ustawień: formularz wysyła dane w tle, serwer waliduje/nielu, a użytkownik dostaje spinner + wąskie potwierdzenie z automatycznym autohide.
 * Statystyki tokenów rozmieszczają tłumaczenia bez „Unknown format specifier”, a UI potwierdzenia zapisu skaluje się do 360px i przewija się na ekran.
+* Linkowanie wewnętrzne opiera się teraz wyłącznie na „Głównych linkach wewnętrznych” i tagach wpisów; AI dostaje jasne instrukcje i nie dopisuje „na końcu tekstu” zbędnych linków.
 
 = 0.1.8.1 =
 * Kompletnie przebudowany panel „Kontrola WP-Cron”: przyciski start/stop/restart/publikuj działają natychmiast (REST + AJAX), status odświeża się na żądanie, a blokady/komunikaty są widoczne bez przeładowania.

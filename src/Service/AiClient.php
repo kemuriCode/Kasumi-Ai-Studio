@@ -491,11 +491,12 @@ class AiClient {
 				$hint_text,
 				'Anchory muszą istnieć w treści i mieć 2-5 słów.',
 				'Nie wolno wymyślać nowych adresów URL – korzystaj wyłącznie z listy.',
+				'W razie braku dopasowań zwróć pustą tablicę ([]) zamiast wymyślać linków.',
 			)
 		);
 
 		return sprintf(
-			"Tytuł: %s\nLead: %s\nTreść:\n%s\n\nDostępne linki docelowe (JSON {\"title\",\"url\",\"summary\",\"anchors\",\"priority\"}):\n%s\n\nZasady:\n- %s\n\nWybierz maksymalnie 3 propozycje. Zwróć JSON w formacie [{\"anchor\":\"fragment tekstu\",\"url\":\"https://...\",\"title\":\"powód\"}]. W razie braku oczywistych dopasowań wybierz stronę główną i anchor typu 'oferta Kasumi'.",
+			"Tytuł: %s\nLead: %s\nTreść:\n%s\n\nDostępne linki docelowe (JSON {\"title\",\"url\",\"summary\",\"anchors\",\"priority\"}):\n%s\n\nZasady:\n- %s\n\nWybierz maksymalnie 3 propozycje. Zwróć JSON w formacie [{\"anchor\":\"fragment tekstu\",\"url\":\"https://...\",\"title\":\"powód\"}]. W razie braku dopasowań odpowiedz pustą tablicą.",
 			(string) ( $article['title'] ?? '' ),
 			(string) ( $article['excerpt'] ?? '' ),
 			(string) ( $article['content'] ?? '' ),

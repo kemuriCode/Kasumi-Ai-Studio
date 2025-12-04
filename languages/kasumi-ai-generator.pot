@@ -2,7 +2,7 @@
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Kasumi – Full AI Content Generator 0.1.8.2\n"
+"Project-Id-Version: KasumiAI - Full AI Content Generator 0.1.8.2\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/kasumi-ai-generator\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,7 +16,7 @@ msgstr ""
 
 #. Plugin Name of the plugin
 #: kasumi-ai-generator.php
-msgid "Kasumi – Full AI Content Generator"
+msgid "KasumiAI - Full AI Content Generator"
 msgstr ""
 
 #. Plugin URI of the plugin

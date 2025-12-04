@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Kasumi – Full AI Content Generator
+ * Plugin Name: KasumiAI - Full AI Content Generator
  * Plugin URI: https://wordpress.org/plugins/kasumi-ai-generator
  * Description: Nowoczesna wtyczka AI z pełnym wsparciem dla najnowszych modeli GPT-5.1, GPT-4o (OpenAI) oraz Gemini 3 (Google). Obsługuje także starsze modele (GPT-4.1, GPT-4o-mini, Gemini 2.0 Flash) - wybierz model odpowiedni dla Ciebie!
  * Author: Marcin Dymek (KemuriCodes)

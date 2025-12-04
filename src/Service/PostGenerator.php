@@ -12,6 +12,7 @@ use function __;
 use function array_filter;
 use function array_map;
 use function array_merge;
+use function array_unique;
 use function array_rand;
 use function array_values;
 use function current_time;
@@ -297,6 +298,16 @@ class PostGenerator {
 		}
 
 		$candidates  = $this->context_resolver->get_link_candidates();
+		$anchor_hints = $this->context_resolver->get_primary_link_hints();
+		$keyword_hints = $this->get_link_keywords();
+
+		$hints = array_filter(
+			array_unique(
+				array_merge( $anchor_hints, $keyword_hints )
+			),
+			static fn( $hint ) => '' !== trim( $hint )
+		);
+
 		$suggestions = $this->ai_client->suggest_internal_links(
 			array(
 				'title'   => $article['title'] ?? '',
@@ -304,7 +315,7 @@ class PostGenerator {
 				'content' => wp_strip_all_tags( $content ),
 			),
 			$candidates,
-			$this->get_link_keywords()
+			$hints
 		);
 
 		if ( empty( $suggestions ) ) {
