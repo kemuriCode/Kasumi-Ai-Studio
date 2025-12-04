@@ -10,6 +10,7 @@ use Kasumi\AIGenerator\Admin\SettingsPage;
 use Kasumi\AIGenerator\Cron\Scheduler;
 use Kasumi\AIGenerator\Installer\DatabaseMigrator;
 use Kasumi\AIGenerator\Log\Logger;
+use Kasumi\AIGenerator\Rest\AutomationController;
 use Kasumi\AIGenerator\Rest\SchedulesController;
 use Kasumi\AIGenerator\Rest\SettingsController;
 use Kasumi\AIGenerator\Service\AiClient;
@@ -22,13 +23,16 @@ use Kasumi\AIGenerator\Service\MarkdownConverter;
 use Kasumi\AIGenerator\Service\PostGenerator;
 use Kasumi\AIGenerator\Service\ScheduleService;
 
+use function add_option;
 use function get_option;
+use function time;
 use function update_option;
 
 /**
  * Bootstrap Kasumi AI generator.
  */
 final class Module {
+	private static ?self $instance = null;
 	private SettingsPage $settings_page;
 	private Logger $logger;
 	private Scheduler $scheduler;
@@ -40,8 +44,11 @@ final class Module {
 	private ScheduleService $schedule_service;
 	private SchedulesController $schedules_controller;
 	private SettingsController $settings_controller;
+	private AutomationController $automation_controller;
 
 	public function __construct() {
+		self::$instance = $this;
+
 		$this->settings_page = new SettingsPage();
 		$this->logger        = new Logger();
 
@@ -85,9 +92,12 @@ final class Module {
 		);
 		$this->schedules_controller = new SchedulesController( $this->schedule_service );
 		$this->settings_controller = new SettingsController();
+		$this->automation_controller = new AutomationController( $this->scheduler );
 	}
 
 	public function register(): void {
+		$this->ensure_install_timestamp();
+
 		// Zawsze rejestruj stronę ustawień, aby można było włączyć wtyczkę z powrotem
 		add_action( 'admin_menu', array( $this->settings_page, 'register_menu' ) );
 		add_action( 'admin_init', array( $this->settings_page, 'register_settings' ) );
@@ -97,6 +107,7 @@ final class Module {
 		$this->preview_controller->register();
 		$this->models_controller->register();
 		$this->settings_controller->register();
+		$this->automation_controller->register();
 
 		// Harmonogram ma monitorować stan nawet gdy automatyzacja jest czasowo wyłączona
 		$this->scheduler->register();
@@ -113,5 +124,19 @@ final class Module {
 			DatabaseMigrator::migrate();
 			update_option( 'kasumi_ai_db_version', KASUMI_AI_DB_VERSION );
 		}
+	}
+
+	private function ensure_install_timestamp(): void {
+		if ( false === get_option( 'kasumi_ai_install_time', false ) ) {
+			add_option( 'kasumi_ai_install_time', time(), '', 'no' );
+		}
+	}
+
+	public static function instance(): ?self {
+		return self::$instance;
+	}
+
+	public function get_scheduler(): Scheduler {
+		return $this->scheduler;
 	}
 }

@@ -215,8 +215,13 @@
         const root = document.getElementById("kasumi-schedule-manager");
         const apiFetch =
             window.wp && window.wp.apiFetch ? window.wp.apiFetch : null;
+        const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
+        const ajaxConfig = config.ajax || {};
 
-        if (!root || !apiFetch) {
+        if (
+            !root ||
+            (!apiFetch && !nativeFetch && !ajaxConfig.url)
+        ) {
             return;
         }
 

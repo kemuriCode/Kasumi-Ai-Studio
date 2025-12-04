@@ -109,7 +109,7 @@ final class StatsTrackerTest extends TestCase {
 	public function test_get_last_days_limits_to_requested(): void {
 		$result = StatsTracker::get_last_days( 5 );
 
-		$this->assertLessThanOrEqual( 5, count( $result ) );
+		$this->assertCount( 5, $result );
 	}
 
 	public function test_get_last_days_aggregates_by_date(): void {
@@ -118,12 +118,22 @@ final class StatsTrackerTest extends TestCase {
 
 		$result = StatsTracker::get_last_days( 1 );
 
-		if ( ! empty( $result ) ) {
-			$today = date( 'Y-m-d' );
-			if ( isset( $result[ $today ] ) ) {
-				$this->assertArrayHasKey( 'posts', $result[ $today ] );
-				$this->assertArrayHasKey( 'images', $result[ $today ] );
-			}
+		$this->assertNotEmpty( $result );
+		$last_day = array_key_last( $result );
+		$this->assertSame( 1, $result[ $last_day ]['posts'] );
+		$this->assertSame( 1, $result[ $last_day ]['images'] );
+	}
+
+	public function test_get_last_days_returns_zeroes_for_empty_days(): void {
+		StatsTracker::clear();
+
+		$result = StatsTracker::get_last_days( 3 );
+
+		$this->assertCount( 3, $result );
+		foreach ( $result as $day ) {
+			$this->assertSame( 0, $day['posts'] );
+			$this->assertSame( 0, $day['total_tokens'] );
+			$this->assertSame( 0.0, $day['cost'] );
 		}
 	}
 
@@ -184,4 +194,3 @@ final class StatsTrackerTest extends TestCase {
 		$this->assertEmpty( $stats['daily'] );
 	}
 }
-

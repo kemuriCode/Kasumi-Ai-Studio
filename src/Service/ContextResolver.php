@@ -199,6 +199,7 @@ class ContextResolver {
 
 		if ( ! empty( $anchors ) ) {
 			return sprintf(
+				/* translators: %s: comma separated list of preferred phrases. */
 				__( 'Preferowane frazy: %s.', 'kasumi-full-ai-content-generator' ),
 				implode( ', ', $anchors )
 			);

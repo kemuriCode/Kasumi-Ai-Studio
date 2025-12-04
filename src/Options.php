@@ -10,6 +10,7 @@ use function array_filter;
 use function array_map;
 use function array_unique;
 use function array_slice;
+use function array_merge;
 use function explode;
 use function get_option;
 use function get_user_by;
@@ -21,6 +22,7 @@ use function min;
 use function sanitize_hex_color_no_hash;
 use function sanitize_text_field;
 use function trim;
+use function update_option;
 use function wp_parse_args;
 
 /**
@@ -107,6 +109,7 @@ final class Options {
 			'debug_email'             => '',
 			'plugin_enabled'          => true,
 			'delete_tables_on_deactivation' => false,
+			'automation_paused'       => false,
 		);
 	}
 
@@ -204,6 +207,7 @@ final class Options {
 		$sanitized['debug_email'] = sanitize_text_field( $values['debug_email'] ?? '' );
 		$sanitized['plugin_enabled'] = ! empty( $values['plugin_enabled'] );
 		$sanitized['delete_tables_on_deactivation'] = ! empty( $values['delete_tables_on_deactivation'] );
+		$sanitized['automation_paused'] = ! empty( $values['automation_paused'] );
 
 		return $sanitized;
 	}
@@ -335,6 +339,18 @@ final class Options {
 			'message' => __( 'Ustawienia zostały zaimportowane.', 'kasumi-full-ai-content-generator' ),
 			'data'    => $sanitized,
 		);
+	}
+
+	/**
+	 * Aktualizuje istniejące ustawienia, zachowując pozostałe wartości.
+	 *
+	 * @param array<string, mixed> $values
+	 */
+	public static function update( array $values ): void {
+		$current = self::all();
+		$merged  = array_merge( $current, $values );
+
+		update_option( self::OPTION_NAME, self::sanitize( $merged ) );
 	}
 
 }

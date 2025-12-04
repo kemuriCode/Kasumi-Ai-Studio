@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kasumi\AIGenerator\Admin;
 
 use Kasumi\AIGenerator\Log\Logger;
+use Kasumi\AIGenerator\Module;
 use Kasumi\AIGenerator\Options;
 use Kasumi\AIGenerator\Status\StatusStore;
 use Kasumi\AIGenerator\Status\StatsTracker;
@@ -20,6 +21,7 @@ use function checked;
 use function current_time;
 use function current_user_can;
 use function date_i18n;
+use function delete_transient;
 use function delete_user_meta;
 use function esc_attr;
 use function esc_html;
@@ -34,14 +36,18 @@ use function get_option;
 use function get_permalink;
 use function get_post_types;
 use function get_posts;
+use function get_transient;
 use function get_user_meta;
 use function get_users;
+use function home_url;
 use function human_time_diff;
 use function number_format_i18n;
 use function printf;
 use function register_setting;
 use function rest_url;
+use function sanitize_key;
 use function sanitize_text_field;
+use function set_transient;
 use function sprintf;
 use function selected;
 use function settings_errors;
@@ -58,9 +64,9 @@ use function wp_parse_args;
 use function wp_safe_redirect;
 use function wp_strip_all_tags;
 use function wp_unslash;
-use function home_url;
 
 use const DAY_IN_SECONDS;
+use const MINUTE_IN_SECONDS;
 use const WEEK_IN_SECONDS;
 
 /**
@@ -104,6 +110,10 @@ class SettingsPage
             $this,
             "handle_support_card_action",
         ]);
+        add_action("admin_post_kasumi_ai_cron_control", [
+            $this,
+            "handle_cron_control_action",
+        ]);
 
         $this->register_api_section();
         $this->register_content_section();
@@ -144,6 +154,113 @@ class SettingsPage
         wp_safe_redirect(
             admin_url("options-general.php?page=" . self::PAGE_SLUG),
         );
+        exit();
+    }
+
+    public function handle_cron_control_action(): void
+    {
+        if (!current_user_can("manage_options")) {
+            wp_die(
+                esc_html__(
+                    "Brak uprawnień.",
+                    "kasumi-full-ai-content-generator",
+                ),
+            );
+        }
+
+        check_admin_referer("kasumi_ai_cron_control");
+
+        $action = sanitize_key($_POST["kasumi_ai_cron_action"] ?? "");
+        $redirect = admin_url("options-general.php?page=" . self::PAGE_SLUG);
+        $scheduler = Module::instance()
+            ?->get_scheduler();
+
+        if (!$scheduler) {
+            $this->set_cron_notice(
+                "error",
+                __(
+                    "Automatyzacja jest chwilowo niedostępna. Odśwież stronę i spróbuj ponownie.",
+                    "kasumi-full-ai-content-generator",
+                ),
+            );
+            wp_safe_redirect($redirect);
+            exit();
+        }
+
+        $type = "success";
+        $message = "";
+
+        switch ($action) {
+            case "start":
+                $scheduler->resume();
+                $message = __(
+                    "Automatyzacja została uruchomiona.",
+                    "kasumi-full-ai-content-generator",
+                );
+                break;
+            case "stop":
+                $scheduler->pause();
+                $message = __(
+                    "Automatyzacja została zatrzymana.",
+                    "kasumi-full-ai-content-generator",
+                );
+                break;
+            case "restart":
+                $scheduler->restart();
+                $message = __(
+                    "Zadania WP-Cron zostały odświeżone.",
+                    "kasumi-full-ai-content-generator",
+                );
+                break;
+            case "run-post":
+                if (!$scheduler->run_post_now(false)) {
+                    $this->set_cron_notice(
+                        "error",
+                        __(
+                            "Nie udało się wymusić publikacji. Sprawdź konfigurację API i logi.",
+                            "kasumi-full-ai-content-generator",
+                        ),
+                    );
+                    wp_safe_redirect($redirect);
+                    exit();
+                }
+                $message = __(
+                    "Rozpoczęto natychmiastowe generowanie posta.",
+                    "kasumi-full-ai-content-generator",
+                );
+                break;
+            case "run-schedules":
+                $processed = $scheduler->run_manual_queue_now(false, 5);
+                $message = __(
+                    "W kolejce zadań sprawdzono oczekujące wpisy.",
+                    "kasumi-full-ai-content-generator",
+                );
+                if ($processed > 0) {
+                    $message .=
+                        " " .
+                        sprintf(
+                            __(
+                                /* translators: %d: number of schedule jobs forced to run. */
+                                "Wymuszono %d zadań.",
+                                "kasumi-full-ai-content-generator",
+                            ),
+                            $processed,
+                        );
+                }
+                break;
+            default:
+                $type = "error";
+                $message = __(
+                    "Nieobsługiwana akcja automatyzacji.",
+                    "kasumi-full-ai-content-generator",
+                );
+        }
+
+        if ("" !== $message) {
+            $this->set_cron_notice($type, $message);
+        }
+
+        wp_safe_redirect($redirect);
         exit();
     }
 
@@ -212,6 +329,7 @@ class SettingsPage
                 "jquery-ui-tooltip",
                 "wp-color-picker",
                 "wp-util",
+                "wp-api-fetch",
             ],
             KASUMI_AI_VERSION,
             true,
@@ -1365,9 +1483,18 @@ class SettingsPage
             1,
             (int) floor((time() - $install_time) / DAY_IN_SECONDS),
         );
+        $automation = $this->get_automation_snapshot();
+        $cron_notice = $this->consume_cron_notice();
         ?>
 		<div class="wrap">
 			<?php settings_errors(); ?>
+			<?php if ($cron_notice): ?>
+				<div class="notice notice-<?php echo esc_attr(
+        $cron_notice["type"],
+    ); ?>">
+					<p><?php echo esc_html($cron_notice["message"]); ?></p>
+				</div>
+			<?php endif; ?>
 			<h1><i class="bi bi-robot"></i> <?php esc_html_e(
        "Kasumi AI – konfiguracja",
        "kasumi-full-ai-content-generator",
@@ -1423,9 +1550,11 @@ class SettingsPage
 			<?php else: ?>
 				<div class="kasumi-support-reminder">
 					<p style="margin:0;">
-						<?php printf(
+						<?php
+        printf(
           wp_kses_post(
               __(
+                  /* translators: 1: number of days using Kasumi, 2: coffee link */
                   'Korzystasz z Kasumi od %1$s dni. Jeśli narzędzie Ci pomaga, możesz zawsze %2$s.',
                   "kasumi-full-ai-content-generator",
               ),
@@ -1557,6 +1686,128 @@ class SettingsPage
 						</ul>
 					</div>
 				<?php endif; ?>
+				<?php
+    $automation_status = $automation["available"]
+        ? (
+            $automation["paused"]
+                ? __(
+                    "Automatyzacja zatrzymana",
+                    "kasumi-full-ai-content-generator",
+                )
+                : __(
+                    "Automatyzacja aktywna",
+                    "kasumi-full-ai-content-generator",
+                )
+        )
+        : __(
+            "Automatyzacja niedostępna",
+            "kasumi-full-ai-content-generator",
+        );
+    $next_post_label = $this->format_cron_timestamp($automation["next_post"] ?? null);
+    $manual_label = $this->format_cron_timestamp($automation["manual"] ?? null);
+    $comment_label = $this->format_cron_timestamp($automation["comment"] ?? null);
+    $queue_label = number_format_i18n((int) ($automation["queue"] ?? 0));
+    $disable_all = !$automation["available"];
+    ?>
+				<div class="card kasumi-automation-controls">
+					<div class="kasumi-automation-header">
+						<h2><i class="bi bi-repeat"></i> <?php esc_html_e(
+        "Kontrola WP-Cron",
+        "kasumi-full-ai-content-generator",
+    ); ?></h2>
+						<p class="kasumi-automation-state"><?php echo esc_html(
+        $automation_status,
+    ); ?></p>
+					</div>
+					<p class="description"><?php esc_html_e(
+        "Startuj lub zatrzymuj automatyczne generowanie oraz wymuszaj natychmiastową publikację.",
+        "kasumi-full-ai-content-generator",
+    ); ?></p>
+					<?php if (!$automation["available"]): ?>
+						<div class="notice notice-warning">
+							<p><?php esc_html_e(
+         "Automatyzacja jest chwilowo niedostępna. Odśwież stronę i spróbuj ponownie.",
+         "kasumi-full-ai-content-generator",
+     ); ?></p>
+						</div>
+					<?php endif; ?>
+					<?php if (!empty($automation["block_reason"])): ?>
+						<div class="notice notice-warning">
+							<p><?php echo esc_html(
+          (string) $automation["block_reason"],
+      ); ?></p>
+						</div>
+					<?php endif; ?>
+					<div class="kasumi-automation-meta">
+						<div>
+							<span><?php esc_html_e(
+        "Następny post",
+        "kasumi-full-ai-content-generator",
+    ); ?></span>
+							<strong><?php echo esc_html($next_post_label); ?></strong>
+						</div>
+						<div>
+							<span><?php esc_html_e(
+        "Zadania ręczne",
+        "kasumi-full-ai-content-generator",
+    ); ?></span>
+							<strong><?php echo esc_html($manual_label); ?></strong>
+						</div>
+						<div>
+							<span><?php esc_html_e(
+        "Cron komentarzy",
+        "kasumi-full-ai-content-generator",
+    ); ?></span>
+							<strong><?php echo esc_html($comment_label); ?></strong>
+						</div>
+						<div>
+							<span><?php esc_html_e(
+        "Kolejka komentarzy",
+        "kasumi-full-ai-content-generator",
+    ); ?></span>
+							<strong><?php echo esc_html($queue_label); ?></strong>
+						</div>
+					</div>
+					<div class="kasumi-automation-actions">
+						<?php
+        $this->render_cron_button(
+            "start",
+            __("Start", "kasumi-full-ai-content-generator"),
+            "button button-primary",
+            "bi bi-play-fill",
+            $disable_all || !$automation["paused"],
+        );
+        $this->render_cron_button(
+            "stop",
+            __("Zatrzymaj", "kasumi-full-ai-content-generator"),
+            "button button-secondary",
+            "bi bi-stop-fill",
+            $disable_all || $automation["paused"],
+        );
+        $this->render_cron_button(
+            "restart",
+            __("Restartuj WP-Cron", "kasumi-full-ai-content-generator"),
+            "button",
+            "bi bi-arrow-clockwise",
+            $disable_all,
+        );
+        $this->render_cron_button(
+            "run-post",
+            __("Publikuj teraz", "kasumi-full-ai-content-generator"),
+            "button button-link",
+            "bi bi-lightning-fill",
+            $disable_all,
+        );
+        $this->render_cron_button(
+            "run-schedules",
+            __("Wykonaj harmonogram", "kasumi-full-ai-content-generator"),
+            "button button-link",
+            "bi bi-calendar-check",
+            $disable_all,
+        );
+        ?>
+					</div>
+				</div>
 			</div>
 
 			<form action="<?php echo esc_url(admin_url("options.php")); ?>" method="post">
@@ -2569,6 +2820,116 @@ class SettingsPage
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function get_automation_snapshot(): array
+    {
+        $scheduler = Module::instance()
+            ?->get_scheduler();
+
+        if (!$scheduler) {
+            return [
+                "available" => false,
+                "paused" => true,
+                "block_reason" => "",
+                "next_post" => null,
+                "manual" => null,
+                "comment" => null,
+                "queue" => 0,
+            ];
+        }
+
+        $snapshot = $scheduler->get_status_snapshot();
+
+        return [
+            "available" => true,
+            "paused" => (bool) ($snapshot["paused"] ?? false),
+            "block_reason" => (string) ($snapshot["block_reason"] ?? ""),
+            "next_post" => isset($snapshot["status"]["next_post_run"])
+                ? (int) $snapshot["status"]["next_post_run"]
+                : null,
+            "manual" => isset($snapshot["cron"]["manual"])
+                ? (int) $snapshot["cron"]["manual"]
+                : null,
+            "comment" => isset($snapshot["cron"]["comment"])
+                ? (int) $snapshot["cron"]["comment"]
+                : null,
+            "queue" => (int) ($snapshot["status"]["queued_comment_jobs"] ?? 0),
+        ];
+    }
+
+    private function format_cron_timestamp(?int $timestamp): string
+    {
+        if (empty($timestamp)) {
+            return __("Brak", "kasumi-full-ai-content-generator");
+        }
+
+        $date_format = get_option("date_format") . " " . get_option("time_format");
+
+        return date_i18n($date_format, $timestamp);
+    }
+
+    private function set_cron_notice(string $type, string $message): void
+    {
+        set_transient(
+            $this->cron_notice_key(),
+            [
+                "type" => $type,
+                "message" => $message,
+            ],
+            MINUTE_IN_SECONDS,
+        );
+    }
+
+    /**
+     * @return array{type: string, message: string}|null
+     */
+    private function consume_cron_notice(): ?array
+    {
+        $key = $this->cron_notice_key();
+        $notice = get_transient($key);
+
+        if ($notice) {
+            delete_transient($key);
+        }
+
+        return is_array($notice) ? $notice : null;
+    }
+
+    private function cron_notice_key(): string
+    {
+        return "kasumi_ai_cron_notice_" . (string) get_current_user_id();
+    }
+
+    private function render_cron_button(
+        string $action,
+        string $label,
+        string $classes,
+        string $icon,
+        bool $disabled
+    ): void {
+        $disabled_attr = $disabled ? ' disabled="disabled"' : "";
+        ?>
+		<form method="post" action="<?php echo esc_url(
+        admin_url("admin-post.php"),
+    ); ?>">
+			<?php wp_nonce_field("kasumi_ai_cron_control"); ?>
+			<input type="hidden" name="action" value="kasumi_ai_cron_control">
+			<input type="hidden" name="kasumi_ai_cron_action" value="<?php echo esc_attr(
+        $action,
+    ); ?>">
+			<button type="submit" class="<?php echo esc_attr(
+        $classes,
+    ); ?>"<?php echo $disabled_attr; ?>>
+				<i class="<?php echo esc_attr($icon); ?>"></i> <?php echo esc_html(
+        $label,
+    ); ?>
+			</button>
+		</form>
+		<?php
+    }
+
     private function render_stats_tab(): void
     {
         $stats = StatsTracker::all();
@@ -2617,9 +2978,11 @@ class SettingsPage
     ); ?></h3>
 				<p><?php echo esc_html(number_format_i18n($total_tokens)); ?></p>
 				<p>
-					<?php printf(
+					<?php
+     printf(
          esc_html__(
-             "Wejście: %s | Wyjście: %s",
+             /* translators: 1: total input tokens, 2: total output tokens. */
+             "Wejście: %1$s | Wyjście: %2$s",
              "kasumi-full-ai-content-generator",
          ),
          number_format_i18n($total_input_tokens),
@@ -2841,9 +3204,12 @@ class SettingsPage
 
         foreach ($extensions as $extension => $enabled) {
             $rows[] = [
-                /* translators: %s is the PHP extension name. */
                 "label" => sprintf(
-                    __("Rozszerzenie %s", "kasumi-full-ai-content-generator"),
+                    __(
+                        /* translators: %s is the PHP extension name. */
+                        "Rozszerzenie %s",
+                        "kasumi-full-ai-content-generator",
+                    ),
                     strtoupper($extension),
                 ),
                 "value" => $enabled

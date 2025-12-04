@@ -4,7 +4,7 @@ Donate link: https://kemuri.codes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.1.6
+Stable tag: 0.1.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: ai, openai, gemini, pixabay, wp-cron
@@ -100,6 +100,12 @@ The Diagnostics tab and admin notices alert you if PHP < 8.1 or extensions like 
 5. Diagnostics tab showing PHP version and required extensions.
 
 == Changelog ==
+
+= 0.1.7 =
+* Dodano panel kontroli WP-Cron (start/stop/restart, wymuszenie publikacji i kolejki), który resetuje i monitoruje harmonogram bezpośrednio z ustawień Kasumi.
+* Scheduler obsługuje stan „wstrzymany”, umożliwia ręczne uruchamianie zadań mimo pauzy oraz udostępnia REST API dla nowych przycisków.
+* Wykresy statystyk wypełniają brakujące dni (0 wartości) i aktualizują się prawidłowo; licznik dni użytkowania zapisuje datę instalacji tylko raz.
+* Uzupełniono tłumaczenia (PL/EN/DE/ES) i testy jednostkowe dla nowych funkcji oraz usprawniono komunikaty translatorskie.
 
 = 0.1.6 =
 * Dodano presety proporcji obrazka (16:9, 4:3, 1:1, 2:3) z automatycznym uzupełnianiem pól szerokości/wysokości oraz poprawionym UI na urządzeniach mobilnych.

@@ -42,6 +42,9 @@ final class SchedulerTest extends TestCase {
 	protected function tearDown(): void {
 		parent::tearDown();
 		update_option( Options::OPTION_NAME, array() );
+		\wp_clear_scheduled_hook( Scheduler::POST_HOOK );
+		\wp_clear_scheduled_hook( Scheduler::COMMENT_HOOK );
+		\wp_clear_scheduled_hook( Scheduler::MANUAL_HOOK );
 	}
 
 	public function test_ensure_schedules_skips_when_plugin_disabled(): void {
@@ -76,5 +79,47 @@ final class SchedulerTest extends TestCase {
 
 		$this->scheduler->handle_manual_schedules();
 	}
-}
 
+	public function test_run_post_now_respects_manual_pause_flag(): void {
+		Options::update( array( 'automation_paused' => true ) );
+
+		$this->post_generator
+			->expects( $this->never() )
+			->method( 'generate' );
+
+		$this->assertFalse( $this->scheduler->run_post_now() );
+
+		$this->post_generator
+			->expects( $this->once() )
+			->method( 'generate' )
+			->willReturn( 123 );
+
+		$this->assertTrue( $this->scheduler->run_post_now( false ) );
+	}
+
+	public function test_run_manual_queue_now_can_be_forced_when_paused(): void {
+		Options::update( array( 'automation_paused' => true ) );
+
+		$this->schedule_service
+			->expects( $this->never() )
+			->method( 'run_due' );
+
+		$this->assertSame( 0, $this->scheduler->run_manual_queue_now() );
+
+		$this->schedule_service
+			->expects( $this->once() )
+			->method( 'run_due' )
+			->with( 5 )
+			->willReturn( 2 );
+
+		$this->assertSame( 2, $this->scheduler->run_manual_queue_now( false, 5 ) );
+	}
+
+	public function test_pause_and_resume_toggle_flag(): void {
+		$this->scheduler->pause();
+		$this->assertTrue( Options::get( 'automation_paused' ) );
+
+		$this->scheduler->resume();
+		$this->assertFalse( Options::get( 'automation_paused' ) );
+	}
+}

@@ -82,12 +82,7 @@ class Scheduler {
 	}
 
 	public function handle_post_generation(): void {
-		if ( $this->automation_block_reason() ) {
-			return;
-		}
-
-		$this->post_generator->generate();
-		$this->schedule_next_post();
+		$this->run_post_now();
 	}
 
 	public function handle_comment_generation(): void {
@@ -99,11 +94,56 @@ class Scheduler {
 	}
 
 	public function handle_manual_schedules(): void {
-		if ( $this->automation_block_reason() ) {
+		$this->run_manual_queue_now();
+	}
+
+	public function pause(): void {
+		if ( $this->is_paused() ) {
 			return;
 		}
 
-		$processed = $this->schedule_service->run_due();
+		Options::update( array( 'automation_paused' => true ) );
+		$this->clear_scheduled_events();
+
+		StatusStore::merge(
+			array(
+				'next_post_run'     => null,
+				'automation_notice' => __( 'Automatyzacja została ręcznie zatrzymana. Uruchom ją ponownie, aby wznowić publikację.', 'kasumi-full-ai-content-generator' ),
+			)
+		);
+	}
+
+	public function resume(): void {
+		Options::update( array( 'automation_paused' => false ) );
+		$this->ensure_schedules();
+	}
+
+	public function restart(): void {
+		Options::update( array( 'automation_paused' => false ) );
+		$this->clear_scheduled_events();
+		$this->ensure_schedules();
+	}
+
+	public function run_post_now( bool $respect_manual_pause = true ): bool {
+		if ( $this->automation_block_reason( $respect_manual_pause ) ) {
+			return false;
+		}
+
+		$result = (bool) $this->post_generator->generate();
+
+		if ( ! $this->is_paused() ) {
+			$this->schedule_next_post();
+		}
+
+		return $result;
+	}
+
+	public function run_manual_queue_now( bool $respect_manual_pause = true, int $limit = 3 ): int {
+		if ( $this->automation_block_reason( $respect_manual_pause ) ) {
+			return 0;
+		}
+
+		$processed = $this->schedule_service->run_due( $limit );
 
 		if ( $processed > 0 ) {
 			$this->logger->info(
@@ -112,7 +152,33 @@ class Scheduler {
 			);
 		}
 
-		$this->schedule_manual_runner();
+		if ( ! $this->is_paused() ) {
+			$this->schedule_manual_runner();
+		}
+
+		return $processed;
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	public function get_status_snapshot(): array {
+		$status = StatusStore::all();
+
+		return array(
+			'paused'       => $this->is_paused(),
+			'block_reason' => $this->automation_block_reason(),
+			'status'       => $status,
+			'cron'         => array(
+				'post'    => wp_next_scheduled( self::POST_HOOK ) ?: null,
+				'comment' => wp_next_scheduled( self::COMMENT_HOOK ) ?: null,
+				'manual'  => wp_next_scheduled( self::MANUAL_HOOK ) ?: null,
+			),
+		);
+	}
+
+	public function is_paused(): bool {
+		return (bool) Options::get( 'automation_paused', false );
 	}
 
 	private function schedule_next_post(): void {
@@ -164,7 +230,11 @@ class Scheduler {
 		);
 	}
 
-	private function automation_block_reason(): ?string {
+	private function automation_block_reason( bool $respect_manual_pause = true ): ?string {
+		if ( $respect_manual_pause && $this->is_paused() ) {
+			return __( 'Automatyzacja jest wstrzymana – włącz ją w panelu Kasumi, aby wznowić harmonogram.', 'kasumi-full-ai-content-generator' );
+		}
+
 		if ( ! Options::get( 'plugin_enabled', true ) ) {
 			return __( 'Automatyzacja jest wyłączona – włącz moduł Kasumi w sekcji „Pozostałe”.', 'kasumi-full-ai-content-generator' );
 		}

@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Kasumi\AIGenerator\Status;
 
+use DateTimeImmutable;
+use function array_slice;
+use function date;
 use function get_option;
+use function max;
+use function str_contains;
+use function time;
 use function update_option;
 use function wp_parse_args;
-use function time;
-use function date;
-use function array_filter;
-use function array_sum;
-use function array_map;
-use function array_slice;
-use function str_contains;
+use function wp_timezone;
 
 /**
  * Śledzi statystyki użycia API (tokeny, koszty).
@@ -109,44 +109,56 @@ final class StatsTracker {
 	public static function get_last_days( int $days = 30 ): array {
 		$stats = self::all();
 		$daily = $stats['daily'] ?? array();
-		
-		// Sortuj daty
+
 		ksort( $daily );
-		
-		// Weź ostatnie N dni
-		$recent = array_slice( $daily, -$days, $days, true );
-		
-		$result = array();
-		foreach ( $recent as $date => $entries ) {
-			$day_totals = array(
-				'posts'        => 0,
-				'images'       => 0,
-				'comments'     => 0,
-				'input_tokens' => 0,
-				'output_tokens' => 0,
-				'total_tokens' => 0,
-				'cost'         => 0.0,
-			);
-			
-			foreach ( $entries as $entry ) {
-				if ( 'article' === $entry['type'] ) {
-					$day_totals['posts']++;
-				} elseif ( 'image' === $entry['type'] ) {
-					$day_totals['images']++;
-				} elseif ( 'comment' === $entry['type'] ) {
-					$day_totals['comments']++;
-				}
-				
-				$day_totals['input_tokens'] += (int) ( $entry['input_tokens'] ?? 0 );
-				$day_totals['output_tokens'] += (int) ( $entry['output_tokens'] ?? 0 );
-				$day_totals['total_tokens'] += (int) ( $entry['total_tokens'] ?? 0 );
-				$day_totals['cost'] += (float) ( $entry['cost'] ?? 0.0 );
-			}
-			
-			$result[ $date ] = $day_totals;
+
+		$days     = max( 1, $days );
+		$result   = array();
+		$timezone = wp_timezone();
+		$start    = ( new DateTimeImmutable( 'now', $timezone ) )
+			->setTime( 0, 0, 0 )
+			->modify( '-' . ( $days - 1 ) . ' days' );
+
+		for ( $i = 0; $i < $days; $i++ ) {
+			$current = $start->modify( '+' . $i . ' days' );
+			$date    = $current->format( 'Y-m-d' );
+			$entries = $daily[ $date ] ?? array();
+
+			$result[ $date ] = self::summarize_entries( $entries );
 		}
-		
+
 		return $result;
+	}
+
+	private static function summarize_entries( array $entries ): array {
+		$day_totals = array(
+			'posts'        => 0,
+			'images'       => 0,
+			'comments'     => 0,
+			'input_tokens' => 0,
+			'output_tokens'=> 0,
+			'total_tokens' => 0,
+			'cost'         => 0.0,
+		);
+
+		foreach ( $entries as $entry ) {
+			$type = $entry['type'] ?? '';
+
+			if ( 'article' === $type ) {
+				$day_totals['posts']++;
+			} elseif ( 'image' === $type ) {
+				$day_totals['images']++;
+			} elseif ( 'comment' === $type ) {
+				$day_totals['comments']++;
+			}
+
+			$day_totals['input_tokens']  += (int) ( $entry['input_tokens'] ?? 0 );
+			$day_totals['output_tokens'] += (int) ( $entry['output_tokens'] ?? 0 );
+			$day_totals['total_tokens']  += (int) ( $entry['total_tokens'] ?? 0 );
+			$day_totals['cost']          += (float) ( $entry['cost'] ?? 0.0 );
+		}
+
+		return $day_totals;
 	}
 
 	/**
@@ -229,4 +241,3 @@ final class StatsTracker {
 		) );
 	}
 }
-

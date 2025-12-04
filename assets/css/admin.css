@@ -319,6 +319,62 @@
     margin-bottom: 24px;
 }
 
+.kasumi-automation-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.kasumi-automation-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.kasumi-automation-state {
+    margin: 0;
+    font-weight: 600;
+    color: var(--wp-admin-theme-color);
+}
+
+.kasumi-automation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.kasumi-automation-actions form {
+    margin: 0;
+}
+
+.kasumi-automation-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px 20px;
+    padding: 8px 0;
+}
+
+.kasumi-automation-meta span {
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--wp-admin-text-color);
+    opacity: 0.8;
+}
+
+.kasumi-automation-meta strong {
+    display: block;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.kasumi-automation-controls .notice {
+    margin: 0;
+}
+
 .kasumi-support-card {
     display: flex;
     flex-wrap: wrap;
