@@ -4,7 +4,7 @@ Donate link: https://kemuri.codes
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.1.7
+Stable tag: 0.1.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: ai, openai, gemini, pixabay, wp-cron
@@ -100,6 +100,11 @@ The Diagnostics tab and admin notices alert you if PHP < 8.1 or extensions like 
 5. Diagnostics tab showing PHP version and required extensions.
 
 == Changelog ==
+
+= 0.1.8 =
+* Panel „Kontrola WP-Cron” został przebudowany na natywne formularze WordPressa (bez JavaScript) – wszystkie akcje start/stop/restart/publikuj działają natychmiast i wyświetlają komunikaty w standardowych notyfikacjach.
+* Dodano czytelny podgląd stanu automatyzacji (aktywna/zatrzymana/niedostępna), najbliższych zdarzeń oraz kolejki komentarzy wraz z blokującym komunikatem, jeśli cron nie może się uruchomić.
+* Usunięto niepotrzebne endpointy REST/AJAX i logikę JS sterującą cronem, aby uprościć proces i spełnić wymagania bezpieczeństwa WordPress.org (sanityzacja, csfr, late escaping).
 
 = 0.1.7 =
 * Dodano panel kontroli WP-Cron (start/stop/restart, wymuszenie publikacji i kolejki), który resetuje i monitoruje harmonogram bezpośrednio z ustawień Kasumi.
