@@ -18,6 +18,7 @@ use function admin_url;
 use function update_option;
 use function check_admin_referer;
 use function checked;
+use function disabled;
 use function current_time;
 use function current_user_can;
 use function date_i18n;
@@ -40,6 +41,7 @@ use function get_transient;
 use function get_user_meta;
 use function get_users;
 use function home_url;
+use function map_deep;
 use function human_time_diff;
 use function number_format_i18n;
 use function printf;
@@ -58,6 +60,7 @@ use function update_user_meta;
 use function wp_create_nonce;
 use function wp_die;
 use function wp_enqueue_script;
+use function wp_kses;
 use function wp_kses_post;
 use function wp_localize_script;
 use function wp_parse_args;
@@ -247,8 +250,8 @@ class SettingsPage
                     $message .=
                         " " .
                         sprintf(
+                            /* translators: %d: number of schedule jobs forced to run. */
                             __(
-                                /* translators: %d: number of schedule jobs forced to run. */
                                 "Wymuszono %d zadań.",
                                 "kasumi-ai-generator",
                             ),
@@ -289,7 +292,9 @@ class SettingsPage
             ? wp_unslash($_POST[Options::OPTION_NAME])
             : [];
 
-        if (!is_array($raw_values)) {
+        if (is_array($raw_values)) {
+            $raw_values = map_deep($raw_values, "sanitize_text_field");
+        } else {
             $raw_values = [];
         }
 
@@ -332,14 +337,6 @@ class SettingsPage
                 "1.13.1",
             );
         }
-
-        wp_enqueue_script(
-            "chart-js",
-            KASUMI_AI_URL . "assets/js/chart.umd.min.js",
-            [],
-            "4.4.0",
-            true,
-        );
 
         wp_enqueue_script(
             "kasumi-ai-preview",
@@ -415,6 +412,44 @@ class SettingsPage
             ],
             "scheduler" => $this->get_scheduler_settings(),
             "automation" => $this->get_automation_ui_config(),
+            "logs" => [
+                "filterSelector" => "#kasumi-log-level-filter",
+                "refreshSelector" => "#kasumi-refresh-logs",
+            ],
+            "settingsActions" => [
+                "restUrl" => esc_url_raw(rest_url("kasumi/v1/settings")),
+                "nonce" => wp_create_nonce("wp_rest"),
+                "messages" => [
+                    "exportSuccess" => __(
+                        "Ustawienia zostały wyeksportowane.",
+                        "kasumi-ai-generator",
+                    ),
+                    "exportError" => __(
+                        "Błąd podczas eksportu ustawień.",
+                        "kasumi-ai-generator",
+                    ),
+                    "importSuccess" => __(
+                        "Ustawienia zostały zaimportowane.",
+                        "kasumi-ai-generator",
+                    ),
+                    "importError" => __(
+                        "Błąd podczas importu ustawień.",
+                        "kasumi-ai-generator",
+                    ),
+                    "resetSuccess" => __(
+                        "Ustawienia zostały zresetowane.",
+                        "kasumi-ai-generator",
+                    ),
+                    "resetError" => __(
+                        "Błąd podczas resetowania ustawień.",
+                        "kasumi-ai-generator",
+                    ),
+                ],
+                "confirmReset" => __(
+                    "Czy na pewno chcesz zresetować wszystkie ustawienia do domyślnych? Ta operacja jest nieodwracalna.",
+                    "kasumi-ai-generator",
+                ),
+            ],
         ]);
 
         wp_enqueue_style(
@@ -696,8 +731,8 @@ class SettingsPage
             [
                 "placeholder" => "12345678-abcdef...",
                 "description" => sprintf(
+                    /* translators: %s link to Pixabay API page. */
                     __(
-                        /* translators: %s link to Pixabay API page. */
                         'Klucz API Pixabay używany do pobierania obrazów w trybie serwerowym. Darmowe API pobierzesz z %s.',
                         "kasumi-ai-generator",
                     ),
@@ -1623,8 +1658,8 @@ class SettingsPage
             esc_html__("postawić kawę", "kasumi-ai-generator"),
         );
         $support_message = sprintf(
+            /* translators: 1: number of days using Kasumi, 2: coffee link */
             __(
-                /* translators: 1: number of days using Kasumi, 2: coffee link */
                 'Korzystasz z Kasumi od %1$s dni. Jeśli narzędzie Ci pomaga, możesz zawsze %2$s.',
                 "kasumi-ai-generator",
             ),
@@ -1903,7 +1938,10 @@ class SettingsPage
     private function render_field(string $key, array $args): void
     {
         $value = Options::get($key);
-        $type = $args["type"];
+        $type = sanitize_key((string) ($args["type"] ?? "text"));
+        if ("" === $type) {
+            $type = "text";
+        }
 
         switch ($type) {
             case "textarea":
@@ -1922,45 +1960,35 @@ class SettingsPage
                     $key,
                     $is_multiple ? "[]" : "",
                 );
-                $attributes = $is_multiple ? " multiple" : "";
-
-                if ($is_multiple && !empty($args["size"])) {
-                    $attributes .= ' size="' . (int) $args["size"] . '"';
+                $select_attributes = [];
+                if ($is_multiple) {
+                    $select_attributes["multiple"] = true;
+                    if (!empty($args["size"])) {
+                        $select_attributes["size"] = (int) $args["size"];
+                    }
                 }
 
-                printf(
-                    '<select name="%s"%s>',
-                    esc_attr($field_name),
-                    $attributes,
-                );
+                echo '<select name="' .
+                    esc_attr($field_name) .
+                    '"' .
+                    $this->build_attribute_string($select_attributes) .
+                    ">";
 
                 $selected_values = $is_multiple
                     ? array_map("strval", is_array($value) ? $value : [])
                     : (string) $value;
 
                 foreach ($args["choices"] as $option_value => $label) {
-                    $selected_attr = $is_multiple
-                        ? selected(
-                            in_array(
-                                (string) $option_value,
-                                $selected_values,
-                                true,
-                            ),
-                            true,
-                            false,
-                        )
-                        : selected(
-                            $selected_values,
+                    $is_selected = $is_multiple
+                        ? in_array(
                             (string) $option_value,
-                            false,
-                        );
-
-                    printf(
-                        '<option value="%s" %s>%3$s</option>',
-                        esc_attr((string) $option_value),
-                        $selected_attr,
-                        esc_html($label),
-                    );
+                            $selected_values,
+                            true,
+                        )
+                        : ((string) $option_value === $selected_values);
+                    ?>
+					<option value="<?php echo esc_attr( (string) $option_value ); ?>"<?php selected($is_selected); ?>><?php echo esc_html($label); ?></option>
+					<?php
                 }
 
                 echo "</select>";
@@ -2062,6 +2090,7 @@ class SettingsPage
 				$links = is_array($value) ? $value : [];
 				$pages =
 					$args["pages"] ?? $this->get_primary_link_page_choices();
+                $allowed_row_html = $this->get_primary_link_row_allowed_html();
                 $template_id = "kasumi-primary-links-template-" . uniqid();
                 $next_index = count($links);
                 echo '<div class="kasumi-primary-links" data-kasumi-primary-links data-template="#' .
@@ -2085,10 +2114,13 @@ class SettingsPage
 
                 if (!empty($links)) {
                     foreach ($links as $index => $entry) {
-                        echo $this->render_primary_link_row_html(
-                            (string) $index,
-                            (array) $entry,
-                            $pages,
+                        echo wp_kses(
+                            $this->render_primary_link_row_html(
+                                (string) $index,
+                                (array) $entry,
+                                $pages,
+                            ),
+                            $allowed_row_html,
                         );
                     }
                 }
@@ -2105,14 +2137,17 @@ class SettingsPage
                 echo '<script type="text/html" id="' .
                     esc_attr($template_id) .
                     '">';
-                echo $this->render_primary_link_row_html(
-                    "__INDEX__",
-                    [],
-                    $pages,
-                    true,
-				);
-				echo "</script>";
-				break;
+                echo wp_kses(
+                    $this->render_primary_link_row_html(
+                        "__INDEX__",
+                        [],
+                        $pages,
+                        true,
+                    ),
+                    $allowed_row_html,
+                );
+                echo "</script>";
+                    break;
 			case "canvas-presets":
 				$presets = $args["presets"] ?? array();
 				$placeholder =
@@ -2154,34 +2189,34 @@ class SettingsPage
 
 				echo "</select>";
 				break;
-			default:
-				$attributes = [];
-				if (null !== $args["min"]) {
-                    $attributes[] =
-                        'min="' . esc_attr((string) $args["min"]) . '"';
-                }
-                if (null !== $args["max"]) {
-                    $attributes[] =
-                        'max="' . esc_attr((string) $args["max"]) . '"';
-                }
-                if (null !== $args["step"]) {
-                    $attributes[] =
-                        'step="' . esc_attr((string) $args["step"]) . '"';
-                }
+                default:
+                    $input_attributes = [
+                        "type" => $type,
+                        "class" => "regular-text",
+                        "name" => sprintf(
+                            "%s[%s]",
+                            Options::OPTION_NAME,
+                            $key,
+                        ),
+                        "value" => (string) $value,
+                        "placeholder" => (string) ($args["placeholder"] ?? ""),
+                    ];
 
-                $attr_string = $attributes
-                    ? " " . implode(" ", $attributes)
-                    : "";
+                    if (isset($args["min"])) {
+                        $input_attributes["min"] = (string) $args["min"];
+                    }
 
-                printf(
-                    '<input type="%5$s" class="regular-text" name="%s[%s]" value="%3$s" placeholder="%4$s" %6$s>',
-                    esc_attr(Options::OPTION_NAME),
-                    esc_attr($key),
-                    esc_attr((string) $value),
-                    esc_attr((string) $args["placeholder"]),
-                    esc_attr($type),
-                    $attr_string,
-                );
+                    if (isset($args["max"])) {
+                        $input_attributes["max"] = (string) $args["max"];
+                    }
+
+                    if (isset($args["step"])) {
+                        $input_attributes["step"] = (string) $args["step"];
+                    }
+
+                    echo "<input" .
+                        $this->build_attribute_string($input_attributes) .
+                        ">";
         }
 
         if (!empty($args["description"])) {
@@ -2190,6 +2225,31 @@ class SettingsPage
                 wp_kses_post($args["description"]),
             );
         }
+    }
+
+    /**
+     * @param array<string, string|int|bool> $attributes
+     */
+    private function build_attribute_string(array $attributes): string
+    {
+        $output = "";
+
+        foreach ($attributes as $name => $value) {
+            if (is_bool($value)) {
+                if ($value) {
+                    $output .= " " . esc_attr($name);
+                }
+                continue;
+            }
+
+            $output .= sprintf(
+                ' %s="%s"',
+                esc_attr($name),
+                esc_attr((string) $value),
+            );
+        }
+
+        return $output;
     }
 
     /**
@@ -2269,8 +2329,48 @@ class SettingsPage
 					<?php esc_html_e("Usuń", "kasumi-ai-generator"); ?>
 				</button>
 			</td>
-		</tr>
-		<?php return (string) ob_get_clean();
+			</tr>
+			<?php return (string) ob_get_clean();
+    }
+
+    /**
+     * @return array<string, array<string, bool>>
+     */
+    private function get_primary_link_row_allowed_html(): array
+    {
+        return [
+            "tr" => ["class" => true],
+            "td" => ["class" => true],
+            "div" => ["class" => true],
+            "input" => [
+                "type" => true,
+                "class" => true,
+                "name" => true,
+                "value" => true,
+                "placeholder" => true,
+                "data-link-url" => true,
+            ],
+            "select" => [
+                "class" => true,
+                "name" => true,
+                "data-primary-link-select" => true,
+            ],
+            "option" => [
+                "value" => true,
+                "selected" => true,
+            ],
+            "textarea" => [
+                "name" => true,
+                "rows" => true,
+                "placeholder" => true,
+            ],
+            "button" => [
+                "type" => true,
+                "class" => true,
+                "data-action" => true,
+            ],
+            "p" => ["class" => true],
+        ];
     }
 
     /**
@@ -2306,13 +2406,14 @@ class SettingsPage
             (array) $wp_settings_fields[self::PAGE_SLUG][$section_id]
             as $field
         ) {
-            $field_class = !empty($field["args"]["class"])
-                ? esc_attr($field["args"]["class"])
-                : "";
-            printf(
-                "<tr%s>",
-                $field_class ? ' class="' . $field_class . '"' : "",
-            );
+            $class_attr = "";
+            if (!empty($field["args"]["class"])) {
+                $class_attr = sprintf(
+                    ' class="%s"',
+                    esc_attr($field["args"]["class"]),
+                );
+            }
+            printf("<tr%s>", $class_attr);
             echo '<th scope="row">';
             if (!empty($field["args"]["label_for"])) {
                 echo '<label for="' .
@@ -2747,7 +2848,6 @@ class SettingsPage
             "orderby" => "title",
             "order" => "ASC",
             "posts_per_page" => 200,
-            "suppress_filters" => true,
         ]);
 
         $list = [
@@ -2859,9 +2959,8 @@ class SettingsPage
         string $icon,
         bool $disabled
     ): void {
-        $disabled_attr = $disabled ? ' disabled="disabled"' : "";
         ?>
-		<form method="post" action="<?php echo esc_url(
+			<form method="post" action="<?php echo esc_url(
         admin_url("admin-post.php"),
     ); ?>" data-kasumi-automation-form data-kasumi-automation-action="<?php echo esc_attr(
         $action,
@@ -2875,7 +2974,7 @@ class SettingsPage
         $classes,
     ); ?>" data-kasumi-automation-action="<?php echo esc_attr(
         $action,
-    ); ?>"<?php echo $disabled_attr; ?>>
+        ); ?>"<?php disabled($disabled); ?>>
 				<i class="<?php echo esc_attr($icon); ?>"></i> <?php echo esc_html(
         $label,
     ); ?>
@@ -2889,6 +2988,7 @@ class SettingsPage
         $stats = StatsTracker::all();
         $totals = $stats["totals"] ?? [];
         $daily_stats = StatsTracker::get_last_days(30);
+        $date_format = (string) get_option("date_format", "Y-m-d");
 
         $total_posts = (int) ($totals["posts"] ?? 0);
         $total_images = (int) ($totals["images"] ?? 0);
@@ -2898,7 +2998,7 @@ class SettingsPage
         $total_tokens = (int) ($totals["total_tokens"] ?? 0);
         $total_cost = (float) ($totals["cost"] ?? 0.0);
         ?>
-		<h2><i class="bi bi-bar-chart"></i> <?php esc_html_e(
+			<h2><i class="bi bi-bar-chart"></i> <?php esc_html_e(
       "Statystyki użycia API",
       "kasumi-ai-generator",
   ); ?></h2>
@@ -2957,180 +3057,62 @@ class SettingsPage
 			</div>
 		</div>
 
-		<h3 style="margin: 40px 0 20px 0;"><?php esc_html_e(
+        <h3 style="margin: 40px 0 20px 0;"><?php esc_html_e(
       "Użycie w ciągu ostatnich 30 dni",
       "kasumi-ai-generator",
   ); ?></h3>
-		<?php
-  $has_activity = array_reduce(
-      $daily_stats,
-      static function (bool $carry, array $day): bool {
-          return $carry || array_sum($day) > 0;
-      },
-      false,
-  );
-  ?>
+        <?php
+        $has_activity = array_reduce(
+            $daily_stats,
+            static function (bool $carry, array $day): bool {
+                return $carry || array_sum($day) > 0;
+            },
+            false,
+        );
+        ?>
 		<?php if (!$has_activity): ?>
 			<p class="kasumi-chart-empty"><?php esc_html_e(
        "Brak danych dla ostatnich 30 dni. Wykres pojawi się po pierwszym wygenerowanym zadaniu.",
        "kasumi-ai-generator",
    ); ?></p>
 		<?php else: ?>
-			<div class="kasumi-chart-container">
-				<canvas id="kasumi-tokens-chart" style="max-height: 300px;"></canvas>
+			<div class="kasumi-stats-table-wrapper">
+				<table class="widefat striped">
+					<thead>
+						<tr>
+							<th><?php esc_html_e("Data", "kasumi-ai-generator"); ?></th>
+							<th><?php esc_html_e("Posty", "kasumi-ai-generator"); ?></th>
+							<th><?php esc_html_e("Grafiki", "kasumi-ai-generator"); ?></th>
+							<th><?php esc_html_e("Komentarze", "kasumi-ai-generator"); ?></th>
+							<th><?php esc_html_e("Tokeny", "kasumi-ai-generator"); ?></th>
+							<th><?php esc_html_e("Koszt (USD)", "kasumi-ai-generator"); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ($daily_stats as $date => $day): ?>
+							<?php
+        $timestamp = strtotime((string) $date);
+        $display_date = $timestamp
+            ? date_i18n($date_format, $timestamp)
+            : $date;
+        $posts = number_format_i18n((int) ($day["posts"] ?? 0));
+        $images = number_format_i18n((int) ($day["images"] ?? 0));
+        $comments = number_format_i18n((int) ($day["comments"] ?? 0));
+        $tokens = number_format_i18n((int) ($day["total_tokens"] ?? 0));
+        $cost_value = number_format_i18n((float) ($day["cost"] ?? 0), 4);
+        ?>
+							<tr>
+								<td><?php echo esc_html($display_date); ?></td>
+								<td><?php echo esc_html($posts); ?></td>
+								<td><?php echo esc_html($images); ?></td>
+								<td><?php echo esc_html($comments); ?></td>
+								<td><?php echo esc_html($tokens); ?></td>
+								<td>$<?php echo esc_html($cost_value); ?></td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
 			</div>
-
-			<div class="kasumi-chart-container">
-				<canvas id="kasumi-cost-chart" style="max-height: 300px;"></canvas>
-			</div>
-
-			<div class="kasumi-chart-container" style="margin-bottom: 0;">
-				<canvas id="kasumi-activity-chart" style="max-height: 300px;"></canvas>
-			</div>
-
-			<script>
-		(function() {
-			const dailyData = <?php echo wp_json_encode($daily_stats); ?>;
-			const dates = Object.keys( dailyData );
-			const tokensData = dates.map( date => dailyData[ date ].total_tokens || 0 );
-			const costData = dates.map( date => dailyData[ date ].cost || 0 );
-			const postsData = dates.map( date => dailyData[ date ].posts || 0 );
-			const imagesData = dates.map( date => dailyData[ date ].images || 0 );
-			const commentsData = dates.map( date => dailyData[ date ].comments || 0 );
-
-			// Funkcja pomocnicza do konwersji hex na rgba
-			function hexToRgba(hex, alpha) {
-				const r = parseInt(hex.slice(1, 3), 16);
-				const g = parseInt(hex.slice(3, 5), 16);
-				const b = parseInt(hex.slice(5, 7), 16);
-				return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-			}
-
-			// Pobierz kolor z CSS variable
-			const themeColor = getComputedStyle(document.documentElement).getPropertyValue('--wp-admin-theme-color').trim() || '#0073aa';
-			const successColor = getComputedStyle(document.documentElement).getPropertyValue('--wp-admin-success-color').trim() || '#178239';
-			const notificationColor = getComputedStyle(document.documentElement).getPropertyValue('--wp-admin-notification-color').trim() || '#d54e21';
-
-			// Wykres tokenów
-			if ( typeof Chart !== 'undefined' && document.getElementById( 'kasumi-tokens-chart' ) ) {
-				new Chart( document.getElementById( 'kasumi-tokens-chart' ), {
-					type: 'line',
-					data: {
-						labels: dates,
-						datasets: [{
-							label: '<?php echo esc_js(
-           __("Tokeny", "kasumi-ai-generator"),
-       ); ?>',
-							data: tokensData,
-							borderColor: themeColor,
-							backgroundColor: hexToRgba(themeColor, 0.1),
-							tension: 0.4
-						}]
-					},
-					options: {
-						responsive: true,
-						maintainAspectRatio: true,
-						plugins: {
-							title: {
-								display: true,
-								text: '<?php echo esc_js(
-            __("Użycie tokenów w czasie", "kasumi-ai-generator"),
-        ); ?>'
-							}
-						},
-						scales: {
-							y: {
-								beginAtZero: true
-							}
-						}
-					}
-				});
-			}
-
-			// Wykres kosztów
-			if ( typeof Chart !== 'undefined' && document.getElementById( 'kasumi-cost-chart' ) ) {
-				new Chart( document.getElementById( 'kasumi-cost-chart' ), {
-					type: 'bar',
-					data: {
-						labels: dates,
-						datasets: [{
-							label: '<?php echo esc_js(
-           __("Koszt (USD)", "kasumi-ai-generator"),
-       ); ?>',
-							data: costData,
-							backgroundColor: themeColor
-						}]
-					},
-					options: {
-						responsive: true,
-						maintainAspectRatio: true,
-						plugins: {
-							title: {
-								display: true,
-								text: '<?php echo esc_js(
-            __("Dzienne koszty API", "kasumi-ai-generator"),
-        ); ?>'
-							}
-						},
-						scales: {
-							y: {
-								beginAtZero: true
-							}
-						}
-					}
-				});
-			}
-
-			// Wykres aktywności
-			if ( typeof Chart !== 'undefined' && document.getElementById( 'kasumi-activity-chart' ) ) {
-				new Chart( document.getElementById( 'kasumi-activity-chart' ), {
-					type: 'bar',
-					data: {
-						labels: dates,
-						datasets: [
-							{
-								label: '<?php echo esc_js(__("Posty", "kasumi-ai-generator")); ?>',
-								data: postsData,
-								backgroundColor: themeColor
-							},
-							{
-								label: '<?php echo esc_js(
-            __("Grafiki", "kasumi-ai-generator"),
-        ); ?>',
-								data: imagesData,
-								backgroundColor: successColor
-							},
-							{
-								label: '<?php echo esc_js(
-            __("Komentarze", "kasumi-ai-generator"),
-        ); ?>',
-								data: commentsData,
-								backgroundColor: notificationColor
-							}
-						]
-					},
-					options: {
-						responsive: true,
-						maintainAspectRatio: true,
-						plugins: {
-							title: {
-								display: true,
-								text: '<?php echo esc_js(
-            __("Dzienna aktywność", "kasumi-ai-generator"),
-        ); ?>'
-							}
-						},
-						scales: {
-							y: {
-								beginAtZero: true,
-								stacked: false
-							}
-						}
-					}
-				});
-			}
-		})();
-		</script>
 		<?php endif; ?>
         <?php
     }
@@ -3296,8 +3278,8 @@ class SettingsPage
 					<p class="kasumi-automation-updated">
 						<?php
         printf(
+            /* translators: %s last sync date. */
             esc_html__(
-                /* translators: %s last sync date. */
                 "Ostatnia synchronizacja: %s",
                 "kasumi-ai-generator",
             ),
@@ -3348,8 +3330,8 @@ class SettingsPage
         foreach ($extensions as $extension => $enabled) {
             $rows[] = [
                 "label" => sprintf(
+                    /* translators: %s is the PHP extension name. */
                     __(
-                        /* translators: %s is the PHP extension name. */
                         "Rozszerzenie %s",
                         "kasumi-ai-generator",
                     ),
@@ -3375,7 +3357,12 @@ class SettingsPage
     {
         $logger = new Logger();
         $logs = $logger->get_recent_logs(50);
-        $level_filter = sanitize_text_field($_GET["log_level"] ?? ""); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $level_filter = "";
+        if (isset($_GET["log_level"])) {
+            $level_filter = sanitize_text_field(
+                wp_unslash((string) $_GET["log_level"]),
+            ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        }
 
         // Filtruj po poziomie jeśli wybrano
         if (
@@ -3387,9 +3374,9 @@ class SettingsPage
             });
         }
         ?>
-		<div class="kasumi-logs-section">
-			<div class="kasumi-logs-toolbar" style="margin-bottom: 12px;">
-				<select name="log_level" id="kasumi-log-level-filter" style="margin-right: 8px;">
+			<div class="kasumi-logs-section">
+				<div class="kasumi-logs-toolbar" style="margin-bottom: 12px;">
+					<select name="log_level" id="kasumi-log-level-filter" data-kasumi-log-filter style="margin-right: 8px;">
 					<option value=""><?php esc_html_e(
          "Wszystkie poziomy",
          "kasumi-ai-generator",
@@ -3413,7 +3400,7 @@ class SettingsPage
     "kasumi-ai-generator",
 ); ?></option>
 				</select>
-				<button type="button" class="button" id="kasumi-refresh-logs"><i class="bi bi-arrow-clockwise"></i> <?php esc_html_e(
+					<button type="button" class="button" id="kasumi-refresh-logs" data-kasumi-log-refresh><i class="bi bi-arrow-clockwise"></i> <?php esc_html_e(
         "Odśwież",
         "kasumi-ai-generator",
     ); ?></button>
@@ -3473,42 +3460,16 @@ class SettingsPage
 						<?php endforeach; ?>
 					</tbody>
 				</table>
-			<?php endif; ?>
-		</div>
-		<script>
-		(function() {
-			const filter = document.getElementById('kasumi-log-level-filter');
-			const refreshBtn = document.getElementById('kasumi-refresh-logs');
-
-			if (filter) {
-				filter.addEventListener('change', function() {
-					const url = new URL(window.location.href);
-					if (this.value) {
-						url.searchParams.set('log_level', this.value);
-					} else {
-						url.searchParams.delete('log_level');
-					}
-					window.location.href = url.toString();
-				});
-			}
-
-			if (refreshBtn) {
-				refreshBtn.addEventListener('click', function() {
-					window.location.reload();
-				});
-			}
-		})();
-		</script>
-		<?php
+				<?php endif; ?>
+			</div>
+			<?php
     }
 
     private function render_settings_actions(): void
     {
-        $rest_url = rest_url("kasumi/v1/settings");
-        $nonce = wp_create_nonce("wp_rest");
         ?>
-		<div class="kasumi-settings-actions" style="margin-top: 16px;">
-			<p class="description"><?php esc_html_e(
+			<div class="kasumi-settings-actions" data-kasumi-settings-actions style="margin-top: 16px;">
+				<p class="description"><?php esc_html_e(
        "Eksportuj, importuj lub zresetuj ustawienia wtyczki.",
        "kasumi-ai-generator",
    ); ?></p>
@@ -3531,171 +3492,9 @@ class SettingsPage
          "kasumi-ai-generator",
      ); ?>
 				</button>
+				</div>
+				<input type="file" id="kasumi-import-file" accept=".json" style="display: none;" />
 			</div>
-			<input type="file" id="kasumi-import-file" accept=".json" style="display: none;" />
-		</div>
-		<script>
-		(function() {
-			const restUrl = <?php echo wp_json_encode($rest_url); ?>;
-			const nonce = <?php echo wp_json_encode($nonce); ?>;
-
-			// Eksport
-			const exportBtn = document.getElementById('kasumi-export-settings');
-			if (exportBtn) {
-				exportBtn.addEventListener('click', async function() {
-					try {
-						const response = await fetch(restUrl + '/export', {
-							method: 'GET',
-							headers: {
-								'X-WP-Nonce': nonce
-							}
-						});
-						const data = await response.json();
-
-						if (data.success && data.data) {
-							const blob = new Blob([data.data], { type: 'application/json' });
-							const url = URL.createObjectURL(blob);
-							const a = document.createElement('a');
-							a.href = url;
-							a.download = 'kasumi-ai-settings-' + new Date().toISOString().split('T')[0] + '.json';
-							document.body.appendChild(a);
-							a.click();
-							document.body.removeChild(a);
-							URL.revokeObjectURL(url);
-
-							alert('<?php echo esc_js(
-           __(
-               "Ustawienia zostały wyeksportowane.",
-               "kasumi-ai-generator",
-           ),
-       ); ?>');
-						} else {
-							alert('<?php echo esc_js(
-           __(
-               "Błąd podczas eksportu ustawień.",
-               "kasumi-ai-generator",
-           ),
-       ); ?>');
-						}
-					} catch (error) {
-						console.error('Export error:', error);
-						alert('<?php echo esc_js(
-          __(
-              "Błąd podczas eksportu ustawień.",
-              "kasumi-ai-generator",
-          ),
-      ); ?>');
-					}
-				});
-			}
-
-			// Import
-			const importBtn = document.getElementById('kasumi-import-settings');
-			const importFile = document.getElementById('kasumi-import-file');
-			if (importBtn && importFile) {
-				importBtn.addEventListener('click', function() {
-					importFile.click();
-				});
-
-				importFile.addEventListener('change', async function(e) {
-					const file = e.target.files[0];
-					if (!file) return;
-
-					const reader = new FileReader();
-					reader.onload = async function(event) {
-						try {
-							const json = event.target.result;
-							const response = await fetch(restUrl + '/import', {
-								method: 'POST',
-								headers: {
-									'Content-Type': 'application/json',
-									'X-WP-Nonce': nonce
-								},
-								body: JSON.stringify({ json: json })
-							});
-							const data = await response.json();
-
-							if (data.success) {
-								alert('<?php echo esc_js(
-            __(
-                "Ustawienia zostały zaimportowane.",
-                "kasumi-ai-generator",
-            ),
-        ); ?>');
-								window.location.reload();
-							} else {
-								alert(data.message || '<?php echo esc_js(
-            __(
-                "Błąd podczas importu ustawień.",
-                "kasumi-ai-generator",
-            ),
-        ); ?>');
-							}
-						} catch (error) {
-							console.error('Import error:', error);
-							alert('<?php echo esc_js(
-           __(
-               "Błąd podczas importu ustawień.",
-               "kasumi-ai-generator",
-           ),
-       ); ?>');
-						}
-					};
-					reader.readAsText(file);
-				});
-			}
-
-			// Reset
-			const resetBtn = document.getElementById('kasumi-reset-settings');
-			if (resetBtn) {
-				resetBtn.addEventListener('click', function() {
-					if (!confirm('<?php echo esc_js(
-         __(
-             "Czy na pewno chcesz zresetować wszystkie ustawienia do domyślnych? Ta operacja jest nieodwracalna.",
-             "kasumi-ai-generator",
-         ),
-     ); ?>')) {
-						return;
-					}
-
-					fetch(restUrl + '/reset', {
-						method: 'POST',
-						headers: {
-							'X-WP-Nonce': nonce
-						}
-					})
-					.then(response => response.json())
-					.then(data => {
-						if (data.success) {
-							alert('<?php echo esc_js(
-           __(
-               "Ustawienia zostały zresetowane.",
-               "kasumi-ai-generator",
-           ),
-       ); ?>');
-							window.location.reload();
-						} else {
-							alert(data.message || '<?php echo esc_js(
-           __(
-               "Błąd podczas resetowania ustawień.",
-               "kasumi-ai-generator",
-           ),
-       ); ?>');
-						}
-					})
-					.catch(error => {
-						console.error('Reset error:', error);
-						alert('<?php echo esc_js(
-          __(
-              "Błąd podczas resetowania ustawień.",
-              "kasumi-ai-generator",
-          ),
-      ); ?>');
-					});
-				});
-			}
-		})();
-		</script>
-		<?php
+			<?php
     }
 }

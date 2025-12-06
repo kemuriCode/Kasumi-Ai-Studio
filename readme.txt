@@ -4,12 +4,12 @@ Donate link: https://kemuri.codes
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 0.1.8.2
+Stable tag: 0.1.8.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: ai, openai, gemini, pixabay, wp-cron
 
-Generate SEO-friendly posts, featured images (Imagic+Pixabay) and AI comments using the latest AI models: GPT-5.1, GPT-4o (OpenAI) and Gemini 3 (Google). Full backward compatibility with older models (GPT-4.1, GPT-4o-mini, Gemini 2.0 Flash). Fully automated with WP-Cron.
+Generate SEO posts, featured images and AI comments with OpenAI + Gemini, Pixabay integration and automated WP-Cron scheduling.
 
 == Description ==
 
@@ -100,6 +100,19 @@ The Diagnostics tab and admin notices alert you if PHP < 8.1 or extensions like 
 5. Diagnostics tab showing PHP version and required extensions.
 
 == Changelog ==
+
+= 0.1.8.4 =
+* Podbity OpenAI PHP SDK do `v0.18.0` (Composer + vendor) oraz lokalna kopia Chart.js do wersji 4.5.0.
+* W panelu diagnostyki logów i akcji ustawień usunięto inline `<script>` – logika została przeniesiona do `admin-ui.js`, a dane przekazywane przez `wp_localize_script()`.
+* Zapisywanie ustawień korzysta teraz z `map_deep( sanitize_text_field )` przed właściwą walidacją, a wszystkie kontrolki select/input budują atrybuty poprzez helper, dzięki czemu WordPress nie raportuje ostrzeżeń o escapie.
+* Przyciski eksportu/importu/resetu komunikują się z REST API przez fetch i mają nowe komunikaty sukcesu/błędu oraz potwierdzenie resetu.
+* Skrócono opis w readme, aby zmieścił się w limicie WordPress.org, oraz dodano drobne poprawki CS (StatsTracker, brak ostrzeżeń o brakującym `gmdate()`).
+
+= 0.1.8.3 =
+* Zgodność z WordPress Plugin Check: wszystkie pola formularzy Settings API są sanityzowane/escapowane, komentarze dla tłumaczy zostały poprawione, a UI głównych linków przechodzi przez `wp_kses`.
+* ScheduleService bezpiecznie składa zapytania SQL (`prepare`, oczyszczone filtry i nazwa tabeli), a ContextResolver nie wymusza już `suppress_filters`.
+* StatsTracker używa `gmdate()`, generator grafik korzysta z `wp_strip_all_tags()`, a deinstalacja tabel odbywa się przez `maybe_drop_table()`.
+* Interfejs automatyzacji pokazuje jedną belkę blokującą (bez powielania komunikatu o braku klucza API) i czytelnie raportuje blokady/ostrzeżenia.
 
 = 0.1.8.2 =
 * AJAX-owy zapis ustawień: formularz wysyła dane w tle, serwer waliduje/nielu, a użytkownik dostaje spinner + wąskie potwierdzenie z automatycznym autohide.

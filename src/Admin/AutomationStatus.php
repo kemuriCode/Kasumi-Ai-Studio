@@ -80,6 +80,10 @@ final class AutomationStatus {
 		$last_error    = (string) ( $status['last_error'] ?? '' );
 		$automation_notice = (string) ( $status['automation_notice'] ?? '' );
 
+		if ( '' !== $block_reason ) {
+			$automation_notice = '';
+		}
+
 		return array(
 			'available'     => $available,
 			'paused'        => $paused,

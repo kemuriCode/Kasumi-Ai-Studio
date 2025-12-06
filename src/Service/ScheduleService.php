@@ -10,6 +10,7 @@ use Kasumi\AIGenerator\Log\Logger;
 use wpdb;
 
 use function absint;
+use function esc_sql;
 use function current_time;
 use function get_date_from_gmt;
 use function in_array;
@@ -28,6 +29,7 @@ use function wp_unslash;
  */
 class ScheduleService {
 	private string $table;
+	private string $table_sql;
 
 	public function __construct(
 		private wpdb $wpdb,
@@ -35,6 +37,7 @@ class ScheduleService {
 		private PostGenerator $post_generator
 	) {
 		$this->table = $this->wpdb->prefix . 'kag_schedules';
+		$this->table_sql = '`' . esc_sql( $this->table ) . '`';
 	}
 
 	/**
@@ -55,31 +58,39 @@ class ScheduleService {
 		$where  = array();
 		$params = array();
 
-		if ( ! empty( $args['status'] ) && in_array( $args['status'], $this->allowed_statuses(), true ) ) {
+		$status = isset( $args['status'] ) ? sanitize_key( (string) $args['status'] ) : '';
+		if ( '' !== $status && in_array( $status, $this->allowed_statuses(), true ) ) {
 			$where[]  = 'status = %s';
-			$params[] = $args['status'];
+			$params[] = $status;
 		}
 
-		if ( ! empty( $args['author'] ) ) {
+		$author_id = isset( $args['author'] ) ? absint( $args['author'] ) : 0;
+		if ( $author_id > 0 ) {
 			$where[]  = 'author_id = %d';
-			$params[] = absint( $args['author'] );
+			$params[] = $author_id;
 		}
 
-		if ( ! empty( $args['search'] ) ) {
+		$search_term = '';
+		if ( isset( $args['search'] ) ) {
+			$search_term = sanitize_text_field( wp_unslash( (string) $args['search'] ) );
+		}
+
+		if ( '' !== $search_term ) {
 			$where[]  = '(post_title LIKE %s OR user_prompt LIKE %s)';
-			$like     = '%' . $this->wpdb->esc_like( (string) $args['search'] ) . '%';
+			$like     = '%' . $this->wpdb->esc_like( $search_term ) . '%';
 			$params[] = $like;
 			$params[] = $like;
 		}
 
 		$where_sql = $where ? 'WHERE ' . implode( ' AND ', $where ) : '';
+		$where_clause = $where_sql ? ' ' . $where_sql : '';
 
 		$per_page = max( 1, (int) $args['per_page'] );
 		$page     = max( 1, (int) $args['page'] );
 		$offset   = ( $page - 1 ) * $per_page;
 
-		$items_query = "SELECT * FROM {$this->table} {$where_sql} ORDER BY publish_at IS NULL, publish_at ASC, id DESC LIMIT %d OFFSET %d";
-		$count_query = "SELECT COUNT(id) FROM {$this->table} {$where_sql}";
+		$items_query = 'SELECT * FROM ' . $this->table_sql . $where_clause . ' ORDER BY publish_at IS NULL, publish_at ASC, id DESC LIMIT %d OFFSET %d';
+		$count_query = 'SELECT COUNT(id) FROM ' . $this->table_sql . $where_clause;
 
 		$items_params = array_merge( $params, array( $per_page, $offset ) );
 
@@ -104,8 +115,9 @@ class ScheduleService {
 	 * @return array<string, mixed>|null
 	 */
 	public function find( int $id ): ?array {
+		$sql = 'SELECT * FROM ' . $this->table_sql . ' WHERE id = %d';
 		$row = $this->wpdb->get_row(
-			$this->wpdb->prepare( "SELECT * FROM {$this->table} WHERE id = %d", $id ),
+			$this->wpdb->prepare( $sql, $id ),
 			ARRAY_A
 		);
 
@@ -171,11 +183,10 @@ class ScheduleService {
 		$limit = max( 1, $limit );
 		$now   = $this->now();
 
-		$ids = $this->wpdb->get_col(
+		$query = 'SELECT id FROM ' . $this->table_sql . ' WHERE status = %s AND publish_at IS NOT NULL AND publish_at <= %s ORDER BY publish_at ASC LIMIT %d';
+		$ids   = $this->wpdb->get_col(
 			$this->wpdb->prepare(
-				"SELECT id FROM {$this->table}
-				WHERE status = %s AND publish_at IS NOT NULL AND publish_at <= %s
-				ORDER BY publish_at ASC LIMIT %d",
+				$query,
 				'scheduled',
 				$now,
 				$limit
@@ -456,4 +467,3 @@ class ScheduleService {
 		return false;
 	}
 }
-

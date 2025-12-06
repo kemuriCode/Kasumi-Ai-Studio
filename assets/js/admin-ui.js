@@ -199,6 +199,195 @@
             initScheduler(adminData.scheduler);
         }
 
+        const initLogsControls = function () {
+            const filter =
+                document.querySelector("[data-kasumi-log-filter]") || null;
+            const refresh =
+                document.querySelector("[data-kasumi-log-refresh]") || null;
+
+            if (filter) {
+                filter.addEventListener("change", function () {
+                    const url = new URL(window.location.href);
+                    if (this.value) {
+                        url.searchParams.set("log_level", this.value);
+                    } else {
+                        url.searchParams.delete("log_level");
+                    }
+                    window.location.href = url.toString();
+                });
+            }
+
+            if (refresh) {
+                refresh.addEventListener("click", function () {
+                    window.location.reload();
+                });
+            }
+        };
+
+        const initSettingsActions = function () {
+            const container = document.querySelector(
+                "[data-kasumi-settings-actions]",
+            );
+            const config = adminData.settingsActions || {};
+            if (!container || !config.restUrl) {
+                return;
+            }
+
+            const restUrl = config.restUrl.replace(/\/$/, "");
+            const nonce = config.nonce || "";
+            const messages = config.messages || {};
+            const confirmReset = config.confirmReset || "";
+
+            const getMessage = function (key, fallback) {
+                if (messages && messages[key]) {
+                    return messages[key];
+                }
+                return fallback || "";
+            };
+
+            const request = function (path, options) {
+                const headers = options.headers || {};
+                return fetch(restUrl + path, {
+                    ...options,
+                    headers: {
+                        "X-WP-Nonce": nonce,
+                        ...headers,
+                    },
+                });
+            };
+
+            const exportBtn = container.querySelector(
+                "#kasumi-export-settings",
+            );
+            if (exportBtn) {
+                exportBtn.addEventListener("click", async function () {
+                    try {
+                        const response = await request("/export", {
+                            method: "GET",
+                        });
+                        const data = await response.json();
+                        if (data && data.success && data.data) {
+                            const blob = new Blob([data.data], {
+                                type: "application/json",
+                            });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download =
+                                "kasumi-ai-settings-" +
+                                new Date().toISOString().split("T")[0] +
+                                ".json";
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                            const successMessage = getMessage(
+                                "exportSuccess",
+                                "",
+                            );
+                            if (successMessage) {
+                                window.alert(successMessage);
+                            }
+                        } else {
+                            window.alert(getMessage("exportError", ""));
+                        }
+                    } catch (error) {
+                        // eslint-disable-next-line no-console
+                        console.error("Export error:", error);
+                        window.alert(getMessage("exportError", ""));
+                    }
+                });
+            }
+
+            const importBtn = container.querySelector(
+                "#kasumi-import-settings",
+            );
+            const importInput =
+                container.querySelector("#kasumi-import-file");
+            if (importBtn && importInput) {
+                importBtn.addEventListener("click", function () {
+                    importInput.click();
+                });
+
+                importInput.addEventListener("change", function (event) {
+                    const file = event.target.files
+                        ? event.target.files[0]
+                        : null;
+                    if (!file) {
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = async function (loadEvent) {
+                        try {
+                            const json = loadEvent.target
+                                ? loadEvent.target.result
+                                : null;
+                            const response = await request("/import", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({ json: json }),
+                            });
+                            const data = await response.json();
+                            if (data && data.success) {
+                                window.alert(getMessage("importSuccess", ""));
+                                window.location.reload();
+                            } else {
+                                const message =
+                                    (data && data.message) ||
+                                    getMessage("importError", "");
+                                if (message) {
+                                    window.alert(message);
+                                }
+                            }
+                        } catch (error) {
+                            // eslint-disable-next-line no-console
+                            console.error("Import error:", error);
+                            window.alert(getMessage("importError", ""));
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+            }
+
+            const resetBtn = container.querySelector(
+                "#kasumi-reset-settings",
+            );
+            if (resetBtn) {
+                resetBtn.addEventListener("click", function () {
+                    if (confirmReset && !window.confirm(confirmReset)) {
+                        return;
+                    }
+
+                    request("/reset", { method: "POST" })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (data && data.success) {
+                                window.alert(getMessage("resetSuccess", ""));
+                                window.location.reload();
+                            } else {
+                                const message =
+                                    (data && data.message) ||
+                                    getMessage("resetError", "");
+                                if (message) {
+                                    window.alert(message);
+                                }
+                            }
+                        })
+                        .catch((error) => {
+                            // eslint-disable-next-line no-console
+                            console.error("Reset error:", error);
+                            window.alert(getMessage("resetError", ""));
+                        });
+                });
+            }
+        };
+
+        initLogsControls();
+        initSettingsActions();
+
         initPrimaryLinksRepeater();
 
         if (adminData.automation) {

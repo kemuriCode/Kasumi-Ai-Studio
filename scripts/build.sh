@@ -48,14 +48,16 @@ rsync -av \
   --exclude='*.md' \
   "${PLUGIN_DIR}/" "${TEMP_DIR}/${PLUGIN_NAME}/"
 
-echo "📚 Instalacja zależności Composer..."
-
-# Instalacja zależności Composer (production only, bez dev dependencies)
 cd "${TEMP_DIR}/${PLUGIN_NAME}"
-composer install --no-dev --optimize-autoloader --no-interaction --quiet
 
-# Usunięcie composer.lock z paczki (nie jest potrzebny w dystrybucji)
-rm -f composer.lock
+if [ -n "${SKIP_COMPOSER:-}" ]; then
+  echo "⏭  Pomijam Composer (SKIP_COMPOSER ustawione) – kopiuję istniejący vendor..."
+  rsync -a "${PLUGIN_DIR}/vendor/" "${TEMP_DIR}/${PLUGIN_NAME}/vendor/"
+else
+  echo "📚 Instalacja zależności Composer..."
+  composer install --no-dev --optimize-autoloader --no-interaction --quiet
+  rm -f composer.lock
+fi
 
 echo "🗜️  Tworzenie archiwum ZIP..."
 

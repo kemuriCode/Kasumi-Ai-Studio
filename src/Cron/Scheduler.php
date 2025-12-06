@@ -59,7 +59,7 @@ class Scheduler {
 			StatusStore::merge(
 				array(
 					'next_post_run'     => null,
-					'automation_notice' => $block_reason,
+					'automation_notice' => '',
 				)
 			);
 

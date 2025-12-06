@@ -58,7 +58,6 @@ use function round;
 use function strlen;
 use function set_post_thumbnail;
 use function sprintf;
-use function strip_tags;
 use function time;
 use function trim;
 use function update_post_meta;
@@ -556,7 +555,7 @@ class FeaturedImageBuilder {
 	}
 
 	private function prepare_caption_text( array $article, array $style ): string {
-		$caption = trim( preg_replace( '/\s+/u', ' ', strip_tags( $this->build_caption( $article ) ) ) ?? '' );
+		$caption = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( $this->build_caption( $article ) ) ) ?? '' );
 
 		if ( ! empty( $style['uppercase'] ) ) {
 			return mb_strtoupper( $caption );

@@ -7,6 +7,7 @@ namespace Kasumi\AIGenerator\Installer;
 use wpdb;
 
 use function dbDelta;
+use function maybe_drop_table;
 use function trailingslashit;
 
 /**
@@ -61,8 +62,8 @@ final class DatabaseMigrator {
 			return;
 		}
 
+		require_once trailingslashit( ABSPATH ) . 'wp-admin/includes/upgrade.php';
 		$table = $wpdb->prefix . 'kag_schedules';
-		$wpdb->query( "DROP TABLE IF EXISTS {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		maybe_drop_table( $table, "DROP TABLE IF EXISTS {$table}" );
 	}
 }
-

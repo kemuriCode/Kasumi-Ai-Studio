@@ -6,7 +6,7 @@ namespace Kasumi\AIGenerator\Status;
 
 use DateTimeImmutable;
 use function array_slice;
-use function date;
+use function gmdate;
 use function get_option;
 use function max;
 use function str_contains;
@@ -28,12 +28,12 @@ final class StatsTracker {
 	 */
 	public static function record( string $type, string $provider, array $data ): void {
 		$stats = self::all();
-		$date = date( 'Y-m-d' );
-		
+		$date  = gmdate( 'Y-m-d' );
+
 		if ( ! isset( $stats['daily'][ $date ] ) ) {
 			$stats['daily'][ $date ] = array();
 		}
-		
+
 		$entry = array(
 			'timestamp'     => time(),
 			'type'          => $type,

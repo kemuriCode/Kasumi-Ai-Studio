@@ -36,8 +36,7 @@ class ContextResolver {
 				'numberposts'      => 5,
 				'post_status'      => 'publish',
 				'orderby'          => 'date',
-				'order'            => 'DESC',
-				'suppress_filters' => true,
+					'order'            => 'DESC',
 			)
 		);
 
@@ -235,8 +234,7 @@ class ContextResolver {
 			array(
 				'post_status'      => 'publish',
 				'numberposts'      => 6,
-				'orderby'          => 'rand',
-				'suppress_filters' => true,
+					'orderby'          => 'rand',
 			)
 		);
 
@@ -263,8 +261,7 @@ class ContextResolver {
 			array(
 				'post_status'      => 'publish',
 				'numberposts'      => 6,
-				'orderby'          => 'rand',
-				'suppress_filters' => true,
+					'orderby'          => 'rand',
 			)
 		);
 
