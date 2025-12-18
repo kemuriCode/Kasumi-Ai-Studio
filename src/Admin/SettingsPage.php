@@ -325,20 +325,16 @@ class SettingsPage
 
         wp_enqueue_style("wp-color-picker");
 
-        // Bootstrap Icons
-        $bootstrap_icons_path =
-            KASUMI_AI_PATH .
-            "vendor/twbs/bootstrap-icons/font/bootstrap-icons.min.css";
-        $bootstrap_icons_url =
-            KASUMI_AI_URL .
-            "vendor/twbs/bootstrap-icons/font/bootstrap-icons.min.css";
+        // Bootstrap Icons from bundled assets
+        $bootstrap_icons_path = KASUMI_AI_PATH . 'assets/icons/bootstrap-icons.min.css';
+        $bootstrap_icons_url  = KASUMI_AI_URL . 'assets/icons/bootstrap-icons.min.css';
 
-        if (file_exists($bootstrap_icons_path)) {
+        if ( file_exists( $bootstrap_icons_path ) ) {
             wp_enqueue_style(
-                "bootstrap-icons",
+                'bootstrap-icons',
                 $bootstrap_icons_url,
-                [],
-                "1.13.1",
+                array(),
+                '1.13.1'
             );
         }
 
